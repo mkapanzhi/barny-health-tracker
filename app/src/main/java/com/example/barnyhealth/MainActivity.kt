@@ -294,19 +294,45 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupYAxis(param: String, yValues: List<Float>, norms: Pair<Float, Float>?) {
-        val dataMin = if (yValues.isEmpty()) 0f else yValues.minOf { it } * 0.9f
-        val dataMax = if (yValues.isEmpty()) 0f else yValues.maxOf { it } * 1.2f
+        val greenZoneMin = norms?.first ?: yValues.minOrNull() ?: 0f
+        val greenZoneMax = norms?.second ?: yValues.maxOrNull() ?: 10f
 
-        norms?.let { range ->
-            val fullMin = minOf(dataMin, range.first * 0.8f)
-            val fullMax = maxOf(dataMax, range.second * 1.2f)
-            chart.axisLeft.axisMinimum = maxOf(0f, fullMin)
-            chart.axisLeft.axisMaximum = niceCeil(fullMax)
-        } ?: run {
-            chart.axisLeft.axisMinimum = maxOf(0f, dataMin)
-            chart.axisLeft.axisMaximum = niceCeil(dataMax)
+        val maxPoint = yValues.maxOrNull() ?: greenZoneMax
+        val minPoint = yValues.minOrNull() ?: greenZoneMin
+
+        val targetMax = maxOf(maxPoint, greenZoneMax)
+        val targetMin = minOf(minPoint, greenZoneMin)
+
+        var delta = targetMax - targetMin
+        if (delta == 0f) delta = 1f
+
+        // Делаем отступ симметричным относительно дельты
+        val padding = delta * 0.25f
+
+        val rawYMin = targetMin - padding
+        val rawYMax = targetMax + padding
+
+        // Если нижняя граница уходит в минус, а мы хотим показать от 0,
+        // нам нужно симметрично урезать и верхний отступ,
+        // чтобы визуальный центр не смещался.
+        val yMin: Float
+        val yMax: Float
+
+        if (rawYMin < 0f) {
+            val cutAmount = 0f - rawYMin // сколько отрезали снизу
+            yMin = 0f
+            // Отрезаем столько же сверху, чтобы сохранить центровку
+            yMax = rawYMax - cutAmount
+        } else {
+            yMin = rawYMin
+            yMax = rawYMax
         }
+
+        // Больше не используем niceCeil, ставим точные границы
+        chart.axisLeft.axisMinimum = yMin
+        chart.axisLeft.axisMaximum = yMax
     }
+
 
     private fun setupNormLines(param: String, norms: Pair<Float, Float>?) {
         chart.axisLeft.removeAllLimitLines()
@@ -337,7 +363,7 @@ class MainActivity : AppCompatActivity() {
             Entry(maxX, norms.second)
         )
 
-        return LineDataSet(fillEntries, "Зона нормы").apply {
+        return LineDataSet(fillEntries, "").apply {
             setDrawFilled(true)
             fillColor = Color.rgb(220, 255, 220)
             fillAlpha = 150
