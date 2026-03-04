@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BarnyHealthTracker</string>
+    <string name="title_activity_history_list">HistoryListActivity</string>
+</resources>
