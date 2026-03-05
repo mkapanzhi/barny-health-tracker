@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     private var selectedDate = Date()
     private lateinit var dataRepo: DataRepository
+    private lateinit var tvParamInfo: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +73,9 @@ class MainActivity : AppCompatActivity() {
 
         spinnerParam.setSelection(HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0))
         updateChart(firstParam)
+
+        tvParamInfo = findViewById(R.id.tvParamInfo)
+        setupChart()
     }
 
     override fun onResume() {
@@ -140,7 +144,11 @@ class MainActivity : AppCompatActivity() {
             HealthParams.ALL_PARAMS
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerParam.adapter = adapter
+        spinnerParam.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_item,
+            HealthParams.ALL_PARAMS
+        )
+
 
         spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -151,7 +159,16 @@ class MainActivity : AppCompatActivity() {
             ) {
                 currentParam = HealthParams.ALL_PARAMS[position]
                 updateChart(currentParam)
+                val description = HealthParams.DESCRIPTIONS[currentParam] ?: "Нет описания"
+                val normRange = HealthParams.NORMS[currentParam]?.let {
+                    "Норма: ${String.format("%.1f", it.first)}–${String.format("%.1f", it.second)}"
+                } ?: "Норма неизвестна"
+                val abbrev = HealthParams.ABBREVIATIONS[currentParam] ?: currentParam
+
+                tvParamInfo.text = "$abbrev ($currentParam)\n$description\n$normRange"
+                tvParamInfo.visibility = View.VISIBLE
             }
+
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
@@ -263,7 +280,7 @@ class MainActivity : AppCompatActivity() {
                 setDrawCircles(false)
             }
         } else {
-            LineDataSet(sortedEntries, param).apply {
+            LineDataSet(sortedEntries, currentParam).apply {
                 color = paramColor
                 setCircleColor(paramColor)
                 lineWidth = 3f
