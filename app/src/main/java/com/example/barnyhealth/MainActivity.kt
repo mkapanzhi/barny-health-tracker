@@ -39,6 +39,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnDelete: Button
     private lateinit var btnShowList: Button
     private var currentParam: String = "WBC"
+    private lateinit var btnBulkEntry: Button
+
 
     private var selectedDate = Date()
     private lateinit var dataRepo: DataRepository
@@ -55,6 +57,8 @@ class MainActivity : AppCompatActivity() {
         btnAdd = findViewById(R.id.btnAdd)
         btnDelete = findViewById(R.id.btnDelete)
         btnShowList = findViewById(R.id.btnShowList)
+        btnBulkEntry = findViewById(R.id.btnBulkEntry)
+
 
         dataRepo = DataRepository(this)
         chartsData.putAll(dataRepo.loadChartsData())
@@ -66,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         setupButton()
         setupDeleteButton()
         setupShowListButton()
+        setupBulkEntryButton()
 
         val firstParam = spinnerParam.selectedItem?.toString()
             ?: chartsData.keys.firstOrNull()
@@ -369,7 +374,11 @@ class MainActivity : AppCompatActivity() {
         }.also { chart.axisLeft.addLimitLine(it) }
     }
 
-    private fun createNormFillDataSet(param: String, pointCount: Int, norms: Pair<Float, Float>?): LineDataSet? {
+    private fun createNormFillDataSet(
+        param: String,
+        pointCount: Int,
+        norms: Pair<Float, Float>?
+    ): LineDataSet? {
         norms ?: return null
 
         val minX = -0.5f
@@ -407,4 +416,11 @@ class MainActivity : AppCompatActivity() {
         }
         return (niceScaled * pow10).toFloat()
     }
+
+    private fun setupBulkEntryButton() {
+        btnBulkEntry.setOnClickListener {
+            startActivity(Intent(this, BulkEntryActivity::class.java))
+        }
+    }
+
 }
