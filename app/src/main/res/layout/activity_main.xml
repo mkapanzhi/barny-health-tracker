@@ -29,7 +29,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle" />
 
-    <!-- Spinner + btnDelete — ПРАВИЛЬНАЯ цепочка -->
     <Spinner
         android:id="@+id/spinnerParam"
         android:layout_width="0dp"
@@ -38,24 +37,10 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:textAlignment="center"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/chartWbc" />
 
-<!--    <Button-->
-<!--        android:id="@+id/btnDelete"-->
-<!--        style="?attr/materialButtonOutlinedStyle"-->
-<!--        android:layout_width="0dp"-->
-<!--        android:layout_height="48dp"-->
-<!--        android:layout_marginStart="8dp"-->
-<!--        android:layout_marginEnd="16dp"-->
-<!--        android:text="🗑️ Удалить"-->
-<!--        app:layout_constraintBottom_toBottomOf="@id/spinnerParam"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintStart_toEndOf="@id/spinnerParam"-->
-<!--        app:layout_constraintTop_toTopOf="@id/spinnerParam" />-->
-
-    <!-- inputRow -->
     <LinearLayout
         android:id="@+id/inputRow"
         android:layout_width="0dp"
@@ -95,36 +80,47 @@
             android:layout_height="match_parent"
             android:layout_weight="2.6"
             android:text="➕ Добавить" />
-
     </LinearLayout>
 
-    <!-- btnShowList -->
     <Button
         android:id="@+id/btnDelete"
         style="?attr/materialButtonOutlinedStyle"
         android:layout_width="0dp"
-        android:layout_height="89dp"
+        android:layout_height="72dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="4dp"
         android:text="🗑️ Удалить"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/btnShowList"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/inputRow" />
 
     <Button
         android:id="@+id/btnShowList"
         style="?attr/materialButtonOutlinedStyle"
         android:layout_width="0dp"
-        android:layout_height="89dp"
-        android:layout_marginStart="8dp"
+        android:layout_height="72dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="4dp"
+        android:text="📋 Список"
+        app:layout_constraintEnd_toStartOf="@id/btnBulkEntry"
+        app:layout_constraintStart_toEndOf="@id/btnDelete"
+        app:layout_constraintTop_toBottomOf="@id/inputRow" />
+
+    <Button
+        android:id="@+id/btnBulkEntry"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:layout_marginStart="4dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:text="📋 Показать список"
-        app:layout_constraintStart_toEndOf="@id/btnDelete"
+        android:text="🧪 Ввод"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/inputRow"
-        app:layout_constraintHorizontal_chainStyle="spread" />
+        app:layout_constraintStart_toEndOf="@id/btnShowList"
+        app:layout_constraintTop_toBottomOf="@id/inputRow" />
 
     <TextView
         android:id="@+id/tvParamInfo"
@@ -134,18 +130,16 @@
         android:layout_marginTop="12dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:padding="12dp"
         android:background="#F0F8FF"
+        android:gravity="top|start"
+        android:lineSpacingExtra="2dp"
+        android:padding="12dp"
+        android:text="Выбери параметр — здесь будет памятка"
         android:textColor="#2C3E50"
         android:textSize="14sp"
-        android:lineSpacingExtra="2dp"
-        android:gravity="top|start"
-        android:text="Выбери параметр — здесь будет памятка"
-        app:layout_constraintTop_toBottomOf="@id/btnShowList"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-
+        app:layout_constraintTop_toBottomOf="@id/btnDelete" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
