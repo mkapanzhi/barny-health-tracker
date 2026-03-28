@@ -1,14 +1,16 @@
 package com.example.barnyhealth
 
-import android.app.DatePickerDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.view.MotionEvent
 import android.view.View
-import android.view.inputmethod.InputMethodManager
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.ImageButton
+import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
@@ -19,12 +21,13 @@ import com.github.mikephil.charting.formatter.IFillFormatter
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
-import java.math.RoundingMode
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.math.*
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,98 +36,61 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var chart: LineChart
     private lateinit var spinnerParam: Spinner
-    private lateinit var editValue: EditText
-    private lateinit var btnDatePicker: Button
-    private lateinit var btnAdd: Button
-    private lateinit var btnDelete: Button
-    private lateinit var btnShowList: Button
-    private var currentParam: String = "WBC"
-    private lateinit var btnBulkEntry: Button
-
-
-    private var selectedDate = Date()
+    private lateinit var btnParamInfo: ImageButton
+    private lateinit var rvMeasurements: RecyclerView
+    private lateinit var fabAdd: FloatingActionButton
+    private lateinit var measurementAdapter: MeasurementAdapter
     private lateinit var dataRepo: DataRepository
-    private lateinit var tvParamInfo: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        chart = findViewById(R.id.chartWbc)
-        spinnerParam = findViewById(R.id.spinnerParam)
-        editValue = findViewById(R.id.editValue)
-        btnDatePicker = findViewById(R.id.btnDatePicker)
-        btnAdd = findViewById(R.id.btnAdd)
-        btnDelete = findViewById(R.id.btnDelete)
-        btnShowList = findViewById(R.id.btnShowList)
-        btnBulkEntry = findViewById(R.id.btnBulkEntry)
-
-
-        dataRepo = DataRepository(this)
-        chartsData.putAll(dataRepo.loadChartsData())
-        datesData.putAll(dataRepo.loadDatesData())
-
+        initViews()
+        setupRecycler()
+        loadData()
         setupChart()
         setupSpinner()
-        setupDatePicker()
-        setupButton()
-        setupDeleteButton()
-        setupShowListButton()
-        setupBulkEntryButton()
+        setupInfoButton()
+        setupFab()
 
-        val firstParam = spinnerParam.selectedItem?.toString()
-            ?: chartsData.keys.firstOrNull()
-            ?: HealthParams.ALL_PARAMS.first()
-
+        val firstParam = HealthParams.ALL_PARAMS.firstOrNull() ?: return
         spinnerParam.setSelection(HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0))
         updateChart(firstParam)
-
-        tvParamInfo = findViewById(R.id.tvParamInfo)
-        setupChart()
     }
 
     override fun onResume() {
         super.onResume()
+        loadData()
+        val selectedParam = spinnerParam.selectedItem?.toString() ?: HealthParams.ALL_PARAMS.first()
+        updateChart(selectedParam)
+    }
+
+    private fun initViews() {
+        chart = findViewById(R.id.chartWbc)
+        spinnerParam = findViewById(R.id.spinnerParam)
+        btnParamInfo = findViewById(R.id.btnParamInfo)
+        rvMeasurements = findViewById(R.id.rvMeasurements)
+        fabAdd = findViewById(R.id.fabAdd)
+    }
+
+    private fun setupRecycler() {
+        measurementAdapter = MeasurementAdapter(emptyList())
+        rvMeasurements.layoutManager = LinearLayoutManager(this)
+        rvMeasurements.adapter = measurementAdapter
+    }
+
+    private fun loadData() {
+        dataRepo = DataRepository(this)
         chartsData.clear()
         datesData.clear()
         chartsData.putAll(dataRepo.loadChartsData())
         datesData.putAll(dataRepo.loadDatesData())
-
-        val param = spinnerParam.selectedItem?.toString() ?: HealthParams.ALL_PARAMS.first()
-        updateChart(param)
     }
 
-    private fun hideKeyboard() {
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(currentFocus?.windowToken, 0)
-        editValue.clearFocus()
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev != null && ev.action == MotionEvent.ACTION_DOWN) {
-            if (currentFocus == editValue) hideKeyboard()
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
-    private fun setupDatePicker() {
-        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-        btnDatePicker.text = "📅 ${sdf.format(selectedDate)}"
-
-        btnDatePicker.setOnClickListener {
-            val calendar = Calendar.getInstance().apply { time = selectedDate }
-
-            DatePickerDialog(
-                this,
-                { _, year, month, day ->
-                    calendar.set(year, month, day)
-                    selectedDate = calendar.time
-                    btnDatePicker.text = "📅 ${sdf.format(selectedDate)}"
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
+    private fun setupFab() {
+        fabAdd.setOnClickListener {
+            startActivity(Intent(this, BulkEntryActivity::class.java))
         }
     }
 
@@ -135,11 +101,19 @@ class MainActivity : AppCompatActivity() {
         chart.setScaleEnabled(true)
         chart.setPinchZoom(true)
 
+        chart.legend.isEnabled = false
+
         chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
         chart.xAxis.setCenterAxisLabels(false)
         chart.xAxis.granularity = 1f
+        chart.xAxis.gridColor = Color.TRANSPARENT
+        chart.xAxis.yOffset = 0f
 
         chart.axisRight.isEnabled = false
+        chart.axisLeft.gridColor = Color.parseColor("#D9E6E1")
+        chart.axisLeft.spaceBottom = 20f
+
+        chart.setExtraOffsets(0f, 0f, 0f, 20f)
     }
 
     private fun setupSpinner() {
@@ -149,11 +123,7 @@ class MainActivity : AppCompatActivity() {
             HealthParams.ALL_PARAMS
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerParam.adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_item,
-            HealthParams.ALL_PARAMS
-        )
-
+        spinnerParam.adapter = adapter
 
         spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -162,83 +132,39 @@ class MainActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                currentParam = HealthParams.ALL_PARAMS[position]
-                updateChart(currentParam)
-                val description = HealthParams.DESCRIPTIONS[currentParam] ?: "Нет описания"
-                val normRange = HealthParams.NORMS[currentParam]?.let {
-                    "Норма: ${String.format("%.1f", it.first)}–${String.format("%.1f", it.second)}"
-                } ?: "Норма неизвестна"
-                val abbrev = HealthParams.ABBREVIATIONS[currentParam] ?: currentParam
-
-                tvParamInfo.text = "$abbrev ($currentParam)\n$description\n$normRange"
-                tvParamInfo.visibility = View.VISIBLE
+                val selectedParam = HealthParams.ALL_PARAMS[position]
+                updateChart(selectedParam)
             }
 
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
     }
 
-    private fun setupButton() {
-        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+    private fun setupInfoButton() {
+        btnParamInfo.setOnClickListener {
+            val param = spinnerParam.selectedItem?.toString() ?: return@setOnClickListener
 
-        btnAdd.setOnClickListener {
-            val param = spinnerParam.selectedItem.toString()
-            val valueText = editValue.text.toString().trim()
-            if (valueText.isEmpty()) return@setOnClickListener
+            val abbreviation = HealthParams.ABBREVIATIONS[param] ?: param
+            val description = HealthParams.DESCRIPTIONS[param] ?: "Описание пока не добавлено."
+            val normPair = HealthParams.NORMS[param]
 
-            val rawValue = valueText.toFloatOrNull() ?: return@setOnClickListener
-
-            val df = DecimalFormat("#.#", DecimalFormatSymbols(Locale.US)).apply {
-                roundingMode = RoundingMode.HALF_UP
-            }
-            val value = df.format(rawValue).toFloat()
-
-            val newTimestamp = selectedDate.time
-
-            val paramDates = datesData.getOrPut(param) { mutableListOf() }
-            val paramValues = chartsData.getOrPut(param) { mutableListOf() }
-
-            val existingIndex = paramDates.indexOfLast { it == newTimestamp }
-            if (existingIndex >= 0) {
-                paramValues[existingIndex] = Pair(paramValues[existingIndex].first, value)
-                Toast.makeText(
-                    this,
-                    "📅 ${sdf.format(selectedDate)} обновлено: $value",
-                    Toast.LENGTH_SHORT
-                ).show()
+            val normText = if (normPair != null) {
+                "Норма: ${
+                    String.format(
+                        Locale.US,
+                        "%.1f",
+                        normPair.first
+                    )
+                }–${String.format(Locale.US, "%.1f", normPair.second)}"
             } else {
-                paramDates.add(newTimestamp)
-                paramValues.add(Pair(0f, value))
-
-                dataRepo.saveChartsData(chartsData)
-                dataRepo.saveDatesData(datesData)
+                "Норма неизвестна"
             }
 
-            updateChart(param)
-            editValue.text.clear()
-            hideKeyboard()
-        }
-    }
-
-    private fun setupDeleteButton() {
-        btnDelete.setOnClickListener {
-            val param = spinnerParam.selectedItem.toString()
-
-            chartsData.remove(param)
-            datesData.remove(param)
-
-            dataRepo.saveChartsData(chartsData)
-            dataRepo.saveDatesData(datesData)
-
-            updateChart(param)
-            Toast.makeText(this, "🗑️ Удалены все данные: $param", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun setupShowListButton() {
-        btnShowList.setOnClickListener {
-            startActivity(Intent(this, HistoryListActivity::class.java))
+            MaterialAlertDialogBuilder(this)
+                .setTitle("$abbreviation • $param")
+                .setMessage("$description\n\n$normText")
+                .setPositiveButton("Понятно", null)
+                .show()
         }
     }
 
@@ -250,72 +176,84 @@ class MainActivity : AppCompatActivity() {
             Pair(timestamp, value)
         }.sortedBy { it.first }
 
-        val sortedEntries = pairedData.mapIndexed { newIndex, pair ->
-            Entry(newIndex.toFloat(), pair.second)
+        val sortedEntries = pairedData.mapIndexed { index, pair ->
+            Entry(index.toFloat(), pair.second)
         }
 
         val sortedTimestamps = pairedData.map { it.first }
-
         val paramColor = HealthParams.COLORS[param] ?: Color.GRAY
         val norms = HealthParams.NORMS[param]
 
-        setupYAxis(param, sortedEntries.map { it.y }, norms)
+        setupYAxis(sortedEntries.map { it.y }, norms)
+        setupXAxis(sortedEntries.size, sortedTimestamps)
 
-        if (sortedEntries.isEmpty()) {
-            chart.xAxis.axisMinimum = -0.5f
-            chart.xAxis.axisMaximum = 4.5f
-            chart.xAxis.valueFormatter = IndexAxisValueFormatter(arrayOf("", "", "", "", ""))
-        } else {
-            chart.xAxis.axisMinimum = -0.5f
-            chart.xAxis.axisMaximum = (sortedEntries.size - 1 + 0.5f)
-            val dateLabels = sortedTimestamps.map { timestamp ->
-                SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(timestamp))
-            }
-            chart.xAxis.valueFormatter = IndexAxisValueFormatter(dateLabels)
-            chart.xAxis.labelCount = sortedEntries.size.coerceIn(3, 10)
-        }
-
-        chart.xAxis.setCenterAxisLabels(false)
-
-        val mainDataSet = if (sortedEntries.isEmpty()) {
-            LineDataSet(emptyList(), "Нет данных").apply {
-                color = paramColor
-                setDrawValues(false)
-                lineWidth = 2f
-                setDrawCircles(false)
-            }
-        } else {
-            LineDataSet(sortedEntries, currentParam).apply {
-                color = paramColor
-                setCircleColor(paramColor)
-                lineWidth = 3f
-                circleRadius = 6f
-                setDrawCircleHole(false)
-                setDrawValues(true)
-                valueTextSize = 12f
-                valueTextColor = Color.BLACK
-
-                valueFormatter = object : ValueFormatter() {
-                    private val df = DecimalFormat("0.0", DecimalFormatSymbols(Locale.US))
-                    override fun getFormattedValue(value: Float): String = df.format(value)
-                }
-            }
-        }
-
-        val fillDataSet = createNormFillDataSet(param, sortedEntries.size, norms)
+        val mainDataSet = createMainDataSet(sortedEntries, param, paramColor)
+        val fillDataSet = createNormFillDataSet(sortedEntries.size, norms)
 
         val allDataSets = mutableListOf<ILineDataSet>()
         fillDataSet?.let { allDataSets.add(it) }
         allDataSets.add(mainDataSet)
 
         chart.data = LineData(allDataSets)
-
-        setupNormLines(param, norms)
-
+        setupNormLines(norms)
         chart.invalidate()
+
+        updateMeasurementsList(param)
     }
 
-    private fun setupYAxis(param: String, yValues: List<Float>, norms: Pair<Float, Float>?) {
+    private fun setupXAxis(entryCount: Int, timestamps: List<Long>) {
+        if (entryCount == 0) {
+            chart.xAxis.axisMinimum = -0.5f
+            chart.xAxis.axisMaximum = 4.5f
+            chart.xAxis.valueFormatter = IndexAxisValueFormatter(arrayOf("", "", "", "", ""))
+            return
+        }
+
+        chart.xAxis.axisMinimum = -0.5f
+        chart.xAxis.axisMaximum = entryCount - 1 + 0.5f
+
+        val dateLabels = timestamps.map { timestamp ->
+            SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(timestamp))
+        }
+
+        chart.xAxis.valueFormatter = IndexAxisValueFormatter(dateLabels)
+        chart.xAxis.labelCount = entryCount.coerceIn(3, 10)
+    }
+
+    private fun createMainDataSet(
+        entries: List<Entry>,
+        param: String,
+        paramColor: Int
+    ): LineDataSet {
+        if (entries.isEmpty()) {
+            return LineDataSet(emptyList(), "Нет данных").apply {
+                color = paramColor
+                setDrawValues(false)
+                lineWidth = 2f
+                setDrawCircles(false)
+            }
+        }
+
+        return LineDataSet(entries, param).apply {
+            color = paramColor
+            setCircleColor(paramColor)
+            lineWidth = 3f
+            circleRadius = 5f
+            setDrawCircleHole(false)
+            setDrawValues(true)
+            valueTextSize = 12f
+            valueTextColor = Color.BLACK
+            mode = LineDataSet.Mode.CUBIC_BEZIER
+            cubicIntensity = 0.20f
+
+            valueFormatter = object : ValueFormatter() {
+                private val df = DecimalFormat("0.0", DecimalFormatSymbols(Locale.US))
+                override fun getFormattedValue(value: Float): String = df.format(value)
+            }
+        }
+    }
+
+    private fun setupYAxis(yValues: List<Float>, norms: Pair<Float, Float>?) {
         val greenZoneMin = norms?.first ?: yValues.minOrNull() ?: 0f
         val greenZoneMax = norms?.second ?: yValues.maxOrNull() ?: 10f
 
@@ -328,35 +266,27 @@ class MainActivity : AppCompatActivity() {
         var delta = targetMax - targetMin
         if (delta == 0f) delta = 1f
 
-        // Делаем отступ симметричным относительно дельты
         val padding = delta * 0.25f
-
         val rawYMin = targetMin - padding
         val rawYMax = targetMax + padding
 
-        // Если нижняя граница уходит в минус, а мы хотим показать от 0,
-        // нам нужно симметрично урезать и верхний отступ,
-        // чтобы визуальный центр не смещался.
         val yMin: Float
         val yMax: Float
 
         if (rawYMin < 0f) {
-            val cutAmount = 0f - rawYMin // сколько отрезали снизу
+            val cutAmount = 0f - rawYMin
             yMin = 0f
-            // Отрезаем столько же сверху, чтобы сохранить центровку
             yMax = rawYMax - cutAmount
         } else {
             yMin = rawYMin
             yMax = rawYMax
         }
 
-        // Больше не используем niceCeil, ставим точные границы
         chart.axisLeft.axisMinimum = yMin
         chart.axisLeft.axisMaximum = yMax
     }
 
-
-    private fun setupNormLines(param: String, norms: Pair<Float, Float>?) {
+    private fun setupNormLines(norms: Pair<Float, Float>?) {
         chart.axisLeft.removeAllLimitLines()
         norms ?: return
 
@@ -375,7 +305,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createNormFillDataSet(
-        param: String,
         pointCount: Int,
         norms: Pair<Float, Float>?
     ): LineDataSet? {
@@ -402,25 +331,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun niceCeil(value: Float): Float {
-        if (value <= 0f) return 1f
-        val log10Value = log10(value.toDouble())
-        val floorLog = floor(log10Value)
-        val pow10 = 10.0.pow(floorLog)
-        val scaled = value / pow10.toFloat()
-        val niceScaled = when {
-            scaled <= 1.0f -> 1.0f
-            scaled <= 2.0f -> 2.0f
-            scaled <= 5.0f -> 5.0f
-            else -> 10.0f
-        }
-        return (niceScaled * pow10).toFloat()
-    }
+    private fun updateMeasurementsList(param: String) {
+        val timestamps = datesData[param]?.toList() ?: emptyList()
+        val values = chartsData[param]?.map { it.second } ?: emptyList()
+        val norms = HealthParams.NORMS[param]
+        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
-    private fun setupBulkEntryButton() {
-        btnBulkEntry.setOnClickListener {
-            startActivity(Intent(this, BulkEntryActivity::class.java))
+        val items = timestamps.zip(values) { timestamp, value ->
+            Pair(timestamp, value)
         }
-    }
+            .sortedByDescending { it.first }
+            .map { (timestamp, value) ->
+                val isOutOfNorm = norms?.let { value < it.first || value > it.second } ?: false
 
+                MeasurementItem(
+                    date = dateFormat.format(Date(timestamp)),
+                    paramName = HealthParams.ABBREVIATIONS[param] ?: param,
+                    valueText = String.format(Locale.US, "%.1f", value),
+                    isOutOfNorm = isOutOfNorm
+                )
+            }
+
+        measurementAdapter.updateItems(items)
+    }
 }
