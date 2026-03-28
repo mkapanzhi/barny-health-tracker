@@ -1,70 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_main_gradient"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnBackBulk"
+        style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="← Назад" />
+        android:text="← Назад"
+        android:textAllCaps="false"
+        android:textColor="#2D3142"
+        app:backgroundTint="@android:color/white"
+        app:cornerRadius="24dp"
+        app:strokeColor="#D8DCE6"
+        app:strokeWidth="1dp" />
 
-
-    <Button
-        android:id="@+id/btnDatePickerBulk"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="📅 Выбрать дату" />
-
-    <RadioGroup
-        android:id="@+id/radioGroupMode"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:orientation="horizontal">
+        app:cardBackgroundColor="#FFFFFF"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#D8DCE6"
+        app:strokeWidth="1dp">
 
-        <RadioButton
-            android:id="@+id/rbAll"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Все" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDatePickerBulk"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:gravity="center"
+            android:text="📅 Выбрать дату"
+            android:textAllCaps="false"
+            android:textColor="#2D3142"
+            android:textSize="18sp"
+            app:backgroundTint="@android:color/transparent"
+            app:rippleColor="#DDEFEA" />
+    </com.google.android.material.card.MaterialCardView>
 
-        <RadioButton
-            android:id="@+id/rbFavorites"
-            android:layout_width="wrap_content"
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:cardBackgroundColor="#FFFFFF"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#D8DCE6"
+        app:strokeWidth="1dp">
+
+        <RadioGroup
+            android:id="@+id/radioGroupMode"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="Избранное" />
-    </RadioGroup>
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="14dp">
+
+            <RadioButton
+                android:id="@+id/rbAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Все"
+                android:textColor="#2D3142"
+                android:textSize="16sp"
+                android:buttonTint="@color/radio_tint"
+                app:buttonTint="@color/radio_tint"
+                app:useMaterialThemeColors="false" />
+
+            <RadioButton
+                android:id="@+id/rbFavorites"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:text="Избранное"
+                android:textColor="#2D3142"
+                android:textSize="16sp"
+                android:buttonTint="@color/radio_tint"
+                app:buttonTint="@color/radio_tint"
+                app:useMaterialThemeColors="false" />
+        </RadioGroup>
+    </com.google.android.material.card.MaterialCardView>
 
     <TextView
         android:id="@+id/tvEmptyFavorites"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:paddingStart="4dp"
         android:text="Нет избранных параметров"
-        android:textSize="16sp"
+        android:textColor="#6B7280"
+        android:textSize="15sp"
         android:visibility="gone" />
 
-    <ScrollView
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        app:cardBackgroundColor="#FFFFFF"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#D8DCE6"
+        app:strokeWidth="1dp">
 
-        <LinearLayout
-            android:id="@+id/containerFields"
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:scrollbars="vertical">
 
-    <Button
+            <LinearLayout
+                android:id="@+id/containerFields"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp" />
+        </ScrollView>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSaveBulk"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:layout_marginTop="12dp"
-        android:text="Сохранить" />
+        android:text="Сохранить"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:backgroundTint="#5EC6B3"
+        app:cornerRadius="28dp" />
+
 </LinearLayout>

@@ -1,8 +1,18 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
     <style name="Base.Theme.BarnyHealthTracker" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">#5EC6B3</item>
+        <item name="colorSecondary">#5EC6B3</item>
+        <item name="colorTertiary">#5EC6B3</item>
+
+        <item name="android:statusBarColor">#FFFFFF</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <item name="colorControlActivated">#5EC6B3</item>
+        <item name="colorControlHighlight">#DDF3EE</item>
     </style>
 
     <style name="Theme.BarnyHealthTracker" parent="Base.Theme.BarnyHealthTracker" />
