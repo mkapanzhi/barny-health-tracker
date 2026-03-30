@@ -102,7 +102,7 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="20dp"
-        android:text="Последние значения"
+        android:text="Недавно добавленные"
         android:textColor="#2D3142"
         android:textSize="18sp"
         android:textStyle="bold"

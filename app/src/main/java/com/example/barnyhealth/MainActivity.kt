@@ -28,6 +28,11 @@ import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.core.view.updateLayoutParams
+import androidx.constraintlayout.widget.ConstraintLayout
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,10 +58,36 @@ class MainActivity : AppCompatActivity() {
         setupSpinner()
         setupInfoButton()
         setupFab()
+        applySafeArea()
 
         val firstParam = HealthParams.ALL_PARAMS.firstOrNull() ?: return
         spinnerParam.setSelection(HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0))
         updateChart(firstParam)
+    }
+
+    private fun applySafeArea() {
+        val root = findViewById<ConstraintLayout>(R.id.main)
+        val fab = findViewById<FloatingActionButton>(R.id.fabAdd)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+
+            val topInset = maxOf(systemBars.top, cutout.top)
+            val bottomInset = maxOf(systemBars.bottom, cutout.bottom)
+
+            view.updatePadding(
+                top = topInset,
+                bottom = 0
+            )
+
+            fab.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                bottomMargin = bottomInset + dp(20)
+                marginEnd = dp(20)
+            }
+
+            insets
+        }
     }
 
     override fun onResume() {
@@ -353,5 +384,9 @@ class MainActivity : AppCompatActivity() {
             }
 
         measurementAdapter.updateItems(items)
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
     }
 }

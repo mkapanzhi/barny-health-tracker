@@ -45,10 +45,13 @@ class BulkEntryActivity : AppCompatActivity() {
         tvEmptyFavorites = findViewById(R.id.tvEmptyFavorites)
         containerFields = findViewById(R.id.containerFields)
         btnSave = findViewById(R.id.btnSaveBulk)
+        btnBack = findViewById(R.id.btnBackBulk)
 
         dataRepo = DataRepository(this)
         chartsData.putAll(dataRepo.loadChartsData())
         datesData.putAll(dataRepo.loadDatesData())
+
+        selectedDate = normalizeDate(selectedDate)
 
         setupDatePicker()
         buildFields()
@@ -58,11 +61,9 @@ class BulkEntryActivity : AppCompatActivity() {
         rbAll.isChecked = true
         applyFilter()
 
-        btnBack = findViewById(R.id.btnBackBulk)
         btnBack.setOnClickListener {
             finish()
         }
-
     }
 
     private fun setupDatePicker() {
@@ -75,8 +76,9 @@ class BulkEntryActivity : AppCompatActivity() {
             DatePickerDialog(
                 this,
                 { _, year, month, day ->
-                    calendar.set(year, month, day)
-                    selectedDate = calendar.time
+                    calendar.set(year, month, day, 0, 0, 0)
+                    calendar.set(Calendar.MILLISECOND, 0)
+                    selectedDate = normalizeDate(calendar.time)
                     btnDatePicker.text = "📅 ${sdf.format(selectedDate)}"
                 },
                 calendar.get(Calendar.YEAR),
@@ -158,7 +160,6 @@ class BulkEntryActivity : AppCompatActivity() {
         }
     }
 
-
     private fun setupModeSwitcher() {
         radioGroupMode.setOnCheckedChangeListener { _, _ ->
             applyFilter()
@@ -202,7 +203,7 @@ class BulkEntryActivity : AppCompatActivity() {
                 roundingMode = RoundingMode.HALF_UP
             }
 
-            val timestamp = selectedDate.time
+            val normalizedTimestamp = normalizeDate(selectedDate).time
             var savedCount = 0
 
             inputMap.forEach { (param, editText) ->
@@ -215,11 +216,15 @@ class BulkEntryActivity : AppCompatActivity() {
                 val paramDates = datesData.getOrPut(param) { mutableListOf() }
                 val paramValues = chartsData.getOrPut(param) { mutableListOf() }
 
-                val existingIndex = paramDates.indexOfLast { it == timestamp }
+                val existingIndex = paramDates.indexOfFirst {
+                    normalizeTimestamp(it) == normalizedTimestamp
+                }
+
                 if (existingIndex >= 0) {
+                    paramDates[existingIndex] = normalizedTimestamp
                     paramValues[existingIndex] = Pair(paramValues[existingIndex].first, value)
                 } else {
-                    paramDates.add(timestamp)
+                    paramDates.add(normalizedTimestamp)
                     paramValues.add(Pair(0f, value))
                 }
 
@@ -244,6 +249,24 @@ class BulkEntryActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun normalizeDate(date: Date): Date {
+        val calendar = Calendar.getInstance().apply { time = date }
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.time
+    }
+
+    private fun normalizeTimestamp(timestamp: Long): Long {
+        val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
     }
 
     private fun dp(value: Int): Int {
