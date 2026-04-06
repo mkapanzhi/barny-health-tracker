@@ -9,6 +9,11 @@ import android.widget.ArrayAdapter
 import android.widget.ImageButton
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.mikephil.charting.charts.LineChart
@@ -28,11 +33,6 @@ import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
-import androidx.core.view.updateLayoutParams
-import androidx.constraintlayout.widget.ConstraintLayout
 
 class MainActivity : AppCompatActivity() {
 
@@ -106,7 +106,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupRecycler() {
-        measurementAdapter = MeasurementAdapter(emptyList())
+        measurementAdapter = MeasurementAdapter(
+            items = emptyList(),
+            onItemLongPress = { item ->
+                measurementAdapter.showDeleteFor(item.timestamp)
+            },
+            onDeleteClick = { item ->
+                confirmDelete(item)
+            },
+            onItemClick = {
+                measurementAdapter.hideDeleteButtons()
+            }
+        )
+
         rvMeasurements.layoutManager = LinearLayoutManager(this)
         rvMeasurements.adapter = measurementAdapter
     }
@@ -164,6 +176,7 @@ class MainActivity : AppCompatActivity() {
                 id: Long
             ) {
                 val selectedParam = HealthParams.ALL_PARAMS[position]
+                measurementAdapter.hideDeleteButtons()
                 updateChart(selectedParam)
             }
 
@@ -376,14 +389,55 @@ class MainActivity : AppCompatActivity() {
                 val isOutOfNorm = norms?.let { value < it.first || value > it.second } ?: false
 
                 MeasurementItem(
+                    timestamp = timestamp,
                     date = dateFormat.format(Date(timestamp)),
                     paramName = HealthParams.ABBREVIATIONS[param] ?: param,
                     valueText = String.format(Locale.US, "%.1f", value),
-                    isOutOfNorm = isOutOfNorm
+                    isOutOfNorm = isOutOfNorm,
+                    showDelete = false
                 )
             }
 
         measurementAdapter.updateItems(items)
+    }
+
+    private fun confirmDelete(item: MeasurementItem) {
+        val param = spinnerParam.selectedItem?.toString() ?: return
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Удалить запись?")
+            .setMessage("${item.date} — ${item.valueText}")
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Удалить") { _, _ ->
+                deleteMeasurement(param, item.timestamp)
+            }
+            .show()
+    }
+
+    private fun deleteMeasurement(param: String, timestamp: Long) {
+        val paramDates = datesData[param] ?: return
+        val paramValues = chartsData[param] ?: return
+
+        val index = paramDates.indexOfFirst { it == timestamp }
+        if (index == -1) return
+
+        paramDates.removeAt(index)
+        if (index < paramValues.size) {
+            paramValues.removeAt(index)
+        }
+
+        if (paramDates.isEmpty()) {
+            datesData.remove(param)
+        }
+        if (paramValues.isEmpty()) {
+            chartsData.remove(param)
+        }
+
+        dataRepo.saveDatesData(datesData)
+        dataRepo.saveChartsData(chartsData)
+
+        measurementAdapter.hideDeleteButtons()
+        updateChart(param)
     }
 
     private fun dp(value: Int): Int {
