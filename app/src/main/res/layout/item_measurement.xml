@@ -8,18 +8,21 @@
     app:cardCornerRadius="18dp"
     app:cardElevation="2dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:padding="16dp">
 
         <LinearLayout
+            android:id="@+id/contentBlock"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            app:layout_constraintEnd_toStartOf="@+id/btnDeleteMeasurement"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginEnd="12dp">
 
             <TextView
                 android:id="@+id/tvItemDate"
@@ -47,7 +50,26 @@
             android:text="17.0"
             android:textColor="#23A26D"
             android:textSize="20sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnDeleteMeasurement"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginEnd="12dp" />
+
+        <ImageButton
+            android:id="@+id/btnDeleteMeasurement"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Удалить запись"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_delete"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:tint="#F20D05" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>
