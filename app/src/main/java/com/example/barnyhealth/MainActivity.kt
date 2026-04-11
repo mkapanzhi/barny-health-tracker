@@ -51,6 +51,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        dataRepo = DataRepository(this)
+
         initViews()
         setupRecycler()
         loadData()
@@ -61,39 +63,18 @@ class MainActivity : AppCompatActivity() {
         applySafeArea()
 
         val firstParam = HealthParams.ALL_PARAMS.firstOrNull() ?: return
-        spinnerParam.setSelection(HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0))
+        spinnerParam.setSelection(
+            HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0)
+        )
         updateChart(firstParam)
-    }
-
-    private fun applySafeArea() {
-        val root = findViewById<ConstraintLayout>(R.id.main)
-        val fab = findViewById<FloatingActionButton>(R.id.fabAdd)
-
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
-
-            val topInset = maxOf(systemBars.top, cutout.top)
-            val bottomInset = maxOf(systemBars.bottom, cutout.bottom)
-
-            view.updatePadding(
-                top = topInset,
-                bottom = 0
-            )
-
-            fab.updateLayoutParams<ConstraintLayout.LayoutParams> {
-                bottomMargin = bottomInset + dp(20)
-                marginEnd = dp(20)
-            }
-
-            insets
-        }
     }
 
     override fun onResume() {
         super.onResume()
         loadData()
-        val selectedParam = spinnerParam.selectedItem?.toString() ?: HealthParams.ALL_PARAMS.first()
+        val selectedParam = spinnerParam.selectedItem?.toString()
+            ?: HealthParams.ALL_PARAMS.firstOrNull()
+            ?: return
         updateChart(selectedParam)
     }
 
@@ -107,15 +88,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRecycler() {
         measurementAdapter = MeasurementAdapter(
-            items = emptyList(),
-            onItemLongPress = { item ->
-                measurementAdapter.showDeleteFor(item.timestamp)
-            },
-            onDeleteClick = { item ->
+            measurements = mutableListOf(),
+            onDelete = { item ->
                 confirmDelete(item)
-            },
-            onItemClick = {
-                measurementAdapter.hideDeleteButtons()
             }
         )
 
@@ -124,7 +99,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadData() {
-        dataRepo = DataRepository(this)
         chartsData.clear()
         datesData.clear()
         chartsData.putAll(dataRepo.loadChartsData())
@@ -134,6 +108,54 @@ class MainActivity : AppCompatActivity() {
     private fun setupFab() {
         fabAdd.setOnClickListener {
             startActivity(Intent(this, BulkEntryActivity::class.java))
+        }
+    }
+
+    private fun setupSpinner() {
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            HealthParams.ALL_PARAMS
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerParam.adapter = adapter
+
+        spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                val selectedParam = HealthParams.ALL_PARAMS[position]
+                updateChart(selectedParam)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+    }
+
+    private fun setupInfoButton() {
+        btnParamInfo.setOnClickListener {
+            val param = spinnerParam.selectedItem?.toString() ?: return@setOnClickListener
+
+            val abbreviation = HealthParams.ABBREVIATIONS[param] ?: param
+            val description = HealthParams.DESCRIPTIONS[param] ?: "Описание пока не добавлено."
+            val normPair = HealthParams.NORMS[param]
+
+            val normText = if (normPair != null) {
+                "Норма: ${
+                    String.format(Locale.US, "%.1f", normPair.first)
+                }–${String.format(Locale.US, "%.1f", normPair.second)}"
+            } else {
+                "Норма неизвестна"
+            }
+
+            MaterialAlertDialogBuilder(this)
+                .setTitle("$abbreviation • $param")
+                .setMessage("$description\n\n$normText")
+                .setPositiveButton("Понятно", null)
+                .show()
         }
     }
 
@@ -157,59 +179,6 @@ class MainActivity : AppCompatActivity() {
         chart.axisLeft.spaceBottom = 20f
 
         chart.setExtraOffsets(0f, 0f, 0f, 20f)
-    }
-
-    private fun setupSpinner() {
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            HealthParams.ALL_PARAMS
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerParam.adapter = adapter
-
-        spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                val selectedParam = HealthParams.ALL_PARAMS[position]
-                measurementAdapter.hideDeleteButtons()
-                updateChart(selectedParam)
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-        }
-    }
-
-    private fun setupInfoButton() {
-        btnParamInfo.setOnClickListener {
-            val param = spinnerParam.selectedItem?.toString() ?: return@setOnClickListener
-
-            val abbreviation = HealthParams.ABBREVIATIONS[param] ?: param
-            val description = HealthParams.DESCRIPTIONS[param] ?: "Описание пока не добавлено."
-            val normPair = HealthParams.NORMS[param]
-
-            val normText = if (normPair != null) {
-                "Норма: ${
-                    String.format(
-                        Locale.US,
-                        "%.1f",
-                        normPair.first
-                    )
-                }–${String.format(Locale.US, "%.1f", normPair.second)}"
-            } else {
-                "Норма неизвестна"
-            }
-
-            MaterialAlertDialogBuilder(this)
-                .setTitle("$abbreviation • $param")
-                .setMessage("$description\n\n$normText")
-                .setPositiveButton("Понятно", null)
-                .show()
-        }
     }
 
     private fun updateChart(param: String) {
@@ -391,10 +360,10 @@ class MainActivity : AppCompatActivity() {
                 MeasurementItem(
                     timestamp = timestamp,
                     date = dateFormat.format(Date(timestamp)),
-                    paramName = HealthParams.ABBREVIATIONS[param] ?: param,
-                    valueText = String.format(Locale.US, "%.1f", value),
-                    isOutOfNorm = isOutOfNorm,
-                    showDelete = false
+                    param = HealthParams.ABBREVIATIONS[param] ?: param,
+                    value = String.format(Locale.US, "%.1f", value),
+                    unit = "",
+                    isOutOfNorm = isOutOfNorm
                 )
             }
 
@@ -406,7 +375,7 @@ class MainActivity : AppCompatActivity() {
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Удалить запись?")
-            .setMessage("${item.date} — ${item.valueText}")
+            .setMessage("${item.date} — ${item.value}")
             .setNegativeButton("Отмена", null)
             .setPositiveButton("Удалить") { _, _ ->
                 deleteMeasurement(param, item.timestamp)
@@ -436,8 +405,32 @@ class MainActivity : AppCompatActivity() {
         dataRepo.saveDatesData(datesData)
         dataRepo.saveChartsData(chartsData)
 
-        measurementAdapter.hideDeleteButtons()
         updateChart(param)
+    }
+
+    private fun applySafeArea() {
+        val root = findViewById<ConstraintLayout>(R.id.main)
+        val fab = findViewById<FloatingActionButton>(R.id.fabAdd)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+
+            val topInset = maxOf(systemBars.top, cutout.top)
+            val bottomInset = maxOf(systemBars.bottom, cutout.bottom)
+
+            view.updatePadding(
+                top = topInset,
+                bottom = 0
+            )
+
+            fab.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                bottomMargin = bottomInset + dp(20)
+                marginEnd = dp(20)
+            }
+
+            insets
+        }
     }
 
     private fun dp(value: Int): Int {

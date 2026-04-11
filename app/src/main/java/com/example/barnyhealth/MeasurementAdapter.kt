@@ -1,82 +1,83 @@
 package com.example.barnyhealth
 
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.PopupMenu
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
 class MeasurementAdapter(
-    private var items: List<MeasurementItem>,
-    private val onItemLongPress: (MeasurementItem) -> Unit,
-    private val onDeleteClick: (MeasurementItem) -> Unit,
-    private val onItemClick: (MeasurementItem) -> Unit
-) : RecyclerView.Adapter<MeasurementAdapter.MeasurementViewHolder>() {
+    private val measurements: MutableList<MeasurementItem>,
+    private val onDelete: (MeasurementItem) -> Unit
+) : RecyclerView.Adapter<MeasurementAdapter.ViewHolder>() {
 
-    class MeasurementViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val tvItemDate: TextView = itemView.findViewById(R.id.tvItemDate)
-        val tvItemParam: TextView = itemView.findViewById(R.id.tvItemParam)
-        val tvItemValue: TextView = itemView.findViewById(R.id.tvItemValue)
-        val btnDeleteMeasurement: ImageButton =
-            itemView.findViewById(R.id.btnDeleteMeasurement)
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvDate: TextView = view.findViewById(R.id.tvItemDate)
+        val tvParam: TextView = view.findViewById(R.id.tvItemParam)
+        val tvValue: TextView = view.findViewById(R.id.tvItemValue)
+        val btnMenu: ImageButton = view.findViewById(R.id.btnMenu)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MeasurementViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_measurement, parent, false)
-        return MeasurementViewHolder(view)
+        return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: MeasurementViewHolder, position: Int) {
-        val item = items[position]
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val item = measurements[position]
 
-        holder.tvItemDate.text = item.date
-        holder.tvItemParam.text = item.paramName
-        holder.tvItemValue.text = item.valueText
-
-        holder.tvItemValue.setTextColor(
-            if (item.isOutOfNorm) Color.parseColor("#D32F2F")
-            else Color.parseColor("#23A26D")
-        )
-
-        holder.btnDeleteMeasurement.visibility =
-            if (item.showDelete) View.VISIBLE else View.GONE
-
-        holder.itemView.setOnLongClickListener {
-            onItemLongPress(item)
-            true
+        holder.tvDate.text = item.date
+        holder.tvParam.text = item.param
+        holder.tvValue.text = if (item.unit.isBlank()) {
+            item.value
+        } else {
+            "${item.value} ${item.unit}"
         }
 
-        holder.itemView.setOnClickListener {
-            onItemClick(item)
+        val valueColor = if (item.isOutOfNorm) {
+            ContextCompat.getColor(holder.itemView.context, android.R.color.holo_red_dark)
+        } else {
+            ContextCompat.getColor(holder.itemView.context, android.R.color.holo_green_dark)
         }
+        holder.tvValue.setTextColor(valueColor)
 
-        holder.btnDeleteMeasurement.setOnClickListener {
-            onDeleteClick(item)
+        holder.btnMenu.setOnClickListener { view ->
+            showPopupMenu(view, item)
         }
     }
 
-    override fun getItemCount(): Int = items.size
+    private fun showPopupMenu(view: View, item: MeasurementItem) {
+        val popup = PopupMenu(view.context, view)
+        popup.menuInflater.inflate(R.menu.item_actions, popup.menu)
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_delete -> {
+                    onDelete(item)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    override fun getItemCount(): Int = measurements.size
 
     fun updateItems(newItems: List<MeasurementItem>) {
-        items = newItems
+        measurements.clear()
+        measurements.addAll(newItems)
         notifyDataSetChanged()
     }
 
-    fun showDeleteFor(timestamp: Long) {
-        items = items.map {
-            it.copy(showDelete = it.timestamp == timestamp)
+    fun removeItem(item: MeasurementItem) {
+        val position = measurements.indexOf(item)
+        if (position != -1) {
+            measurements.removeAt(position)
+            notifyItemRemoved(position)
         }
-        notifyDataSetChanged()
-    }
-
-    fun hideDeleteButtons() {
-        val hasVisibleDelete = items.any { it.showDelete }
-        if (!hasVisibleDelete) return
-
-        items = items.map { it.copy(showDelete = false) }
-        notifyDataSetChanged()
     }
 }
