@@ -62,6 +62,24 @@ class MainActivity : AppCompatActivity() {
         setupFab()
         applySafeArea()
 
+        supportFragmentManager.setFragmentResultListener(
+            QuickAddBottomSheet.REQUEST_KEY,
+            this
+        ) { _, bundle ->
+            val param = bundle.getString(QuickAddBottomSheet.RESULT_PARAM)
+                ?: return@setFragmentResultListener
+            loadData()
+
+            val selectedParam = spinnerParam.selectedItem?.toString()
+            if (selectedParam == param) {
+                updateChart(param)
+            } else {
+                spinnerParam.setSelection(
+                    HealthParams.ALL_PARAMS.indexOf(param).coerceAtLeast(0)
+                )
+            }
+        }
+
         val firstParam = HealthParams.ALL_PARAMS.firstOrNull() ?: return
         spinnerParam.setSelection(
             HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0)
@@ -107,9 +125,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFab() {
         fabAdd.setOnClickListener {
-            startActivity(Intent(this, BulkEntryActivity::class.java))
+            val selectedParam = spinnerParam.selectedItem?.toString()
+                ?: HealthParams.ALL_PARAMS.firstOrNull()
+                ?: return@setOnClickListener
+
+            QuickAddBottomSheet
+                .newInstance(selectedParam)
+                .show(supportFragmentManager, "QuickAddBottomSheet")
         }
     }
+
 
     private fun setupSpinner() {
         val adapter = ArrayAdapter(
