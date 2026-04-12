@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_nav_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.barnyhealth.HomeFragment"
+        android:label="Главная" />
+
+    <fragment
+        android:id="@+id/bulkEntryFragment"
+        android:name="com.example.barnyhealth.BulkEntryFragment"
+        android:label="Добавить" />
+
+    <fragment
+        android:id="@+id/testFragment"
+        android:name="com.example.barnyhealth.TestFragment"
+        android:label="Тест" />
+</navigation>

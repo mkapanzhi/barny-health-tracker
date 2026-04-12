@@ -3,17 +3,18 @@ package com.example.barnyhealth
 import android.app.DatePickerDialog
 import android.os.Bundle
 import android.text.InputType
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.*
 
-class BulkEntryActivity : AppCompatActivity() {
+class BulkEntryFragment : Fragment() {
 
     private lateinit var btnDatePicker: Button
     private lateinit var radioGroupMode: RadioGroup
@@ -34,20 +35,27 @@ class BulkEntryActivity : AppCompatActivity() {
     private var chartsData = mutableMapOf<String, MutableList<Pair<Float, Float>>>()
     private var datesData = mutableMapOf<String, MutableList<Long>>()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_bulk_entry)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        return inflater.inflate(R.layout.activity_bulk_entry, container, false)
+    }
 
-        btnDatePicker = findViewById(R.id.btnDatePickerBulk)
-        radioGroupMode = findViewById(R.id.radioGroupMode)
-        rbAll = findViewById(R.id.rbAll)
-        rbFavorites = findViewById(R.id.rbFavorites)
-        tvEmptyFavorites = findViewById(R.id.tvEmptyFavorites)
-        containerFields = findViewById(R.id.containerFields)
-        btnSave = findViewById(R.id.btnSaveBulk)
-        btnBack = findViewById(R.id.btnBackBulk)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        dataRepo = DataRepository(this)
+        btnDatePicker = view.findViewById(R.id.btnDatePickerBulk)
+        radioGroupMode = view.findViewById(R.id.radioGroupMode)
+        rbAll = view.findViewById(R.id.rbAll)
+        rbFavorites = view.findViewById(R.id.rbFavorites)
+        tvEmptyFavorites = view.findViewById(R.id.tvEmptyFavorites)
+        containerFields = view.findViewById(R.id.containerFields)
+        btnSave = view.findViewById(R.id.btnSaveBulk)
+        btnBack = view.findViewById(R.id.btnBackBulk)
+
+        dataRepo = DataRepository(requireContext())
         chartsData.putAll(dataRepo.loadChartsData())
         datesData.putAll(dataRepo.loadDatesData())
 
@@ -62,7 +70,7 @@ class BulkEntryActivity : AppCompatActivity() {
         applyFilter()
 
         btnBack.setOnClickListener {
-            finish()
+            requireActivity().onBackPressedDispatcher.onBackPressed()
         }
     }
 
@@ -74,7 +82,7 @@ class BulkEntryActivity : AppCompatActivity() {
             val calendar = Calendar.getInstance().apply { time = selectedDate }
 
             DatePickerDialog(
-                this,
+                requireContext(),
                 { _, year, month, day ->
                     calendar.set(year, month, day, 0, 0, 0)
                     calendar.set(Calendar.MILLISECOND, 0)
@@ -96,7 +104,7 @@ class BulkEntryActivity : AppCompatActivity() {
         val sortedParams = HealthParams.ALL_PARAMS.sorted()
 
         sortedParams.forEach { param ->
-            val row = LinearLayout(this).apply {
+            val row = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.TOP
                 layoutParams = LinearLayout.LayoutParams(
@@ -107,7 +115,7 @@ class BulkEntryActivity : AppCompatActivity() {
                 }
             }
 
-            val leftBlock = LinearLayout(this).apply {
+            val leftBlock = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     0,
@@ -121,21 +129,21 @@ class BulkEntryActivity : AppCompatActivity() {
             val shortName = HealthParams.ABBREVIATIONS[param] ?: param
             val fullName = if (shortName != param) param else ""
 
-            val tvShortName = TextView(this).apply {
+            val tvShortName = TextView(requireContext()).apply {
                 text = shortName
                 textSize = 18f
                 setTextColor(android.graphics.Color.parseColor("#2C2C2C"))
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
 
-            val tvFullName = TextView(this).apply {
+            val tvFullName = TextView(requireContext()).apply {
                 text = if (fullName.isNotBlank()) "($fullName)" else ""
                 textSize = 14f
                 setTextColor(android.graphics.Color.parseColor("#666666"))
                 visibility = if (fullName.isNotBlank()) View.VISIBLE else View.GONE
             }
 
-            val etValue = EditText(this).apply {
+            val etValue = EditText(requireContext()).apply {
                 hint = "Значение"
                 inputType = InputType.TYPE_CLASS_NUMBER or
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -236,14 +244,14 @@ class BulkEntryActivity : AppCompatActivity() {
 
             if (savedCount > 0) {
                 Toast.makeText(
-                    this,
+                    requireContext(),
                     "Сохранено параметров: $savedCount",
                     Toast.LENGTH_LONG
                 ).show()
-                finish()
+                requireActivity().onBackPressedDispatcher.onBackPressed()
             } else {
                 Toast.makeText(
-                    this,
+                    requireContext(),
                     "Нет заполненных значений для сохранения",
                     Toast.LENGTH_SHORT
                 ).show()
