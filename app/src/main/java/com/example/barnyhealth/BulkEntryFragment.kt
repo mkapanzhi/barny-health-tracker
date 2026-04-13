@@ -144,7 +144,7 @@ class BulkEntryFragment : Fragment() {
             }
 
             val etValue = EditText(requireContext()).apply {
-                hint = "Значение"
+                hint = "Добавить"
                 inputType = InputType.TYPE_CLASS_NUMBER or
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
                 setSingleLine()

@@ -197,12 +197,15 @@ class HomeFragment : Fragment() {
 
     private fun setupChart() {
         chart.description.isEnabled = false
+        chart.legend.isEnabled = false
+
         chart.setTouchEnabled(true)
         chart.isDragEnabled = true
-        chart.setScaleEnabled(true)
-        chart.setPinchZoom(true)
 
-        chart.legend.isEnabled = false
+        chart.setScaleXEnabled(true)
+        chart.setScaleYEnabled(false)
+        chart.setPinchZoom(false)
+        chart.isDoubleTapToZoomEnabled = false
 
         chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
         chart.xAxis.setCenterAxisLabels(false)
