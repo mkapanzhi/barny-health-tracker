@@ -34,6 +34,7 @@ import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.google.android.material.card.MaterialCardView
 
 class HomeFragment : Fragment() {
 
@@ -47,6 +48,7 @@ class HomeFragment : Fragment() {
     private lateinit var fabAdd: FloatingActionButton
     private lateinit var measurementAdapter: MeasurementAdapter
     private lateinit var dataRepo: DataRepository
+    private lateinit var cardSpinner: MaterialCardView
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -70,25 +72,28 @@ class HomeFragment : Fragment() {
         setupFab()
         applySafeArea(view)
         setupQuickAddResult()
+        setupSpinnerTapArea()
 
         val firstParam = HealthParams.ALL_PARAMS.firstOrNull() ?: return
-        spinnerParam.setSelection(
-            HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0)
-        )
+        val firstIndex = HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0)
+        spinnerParam.setSelection(firstIndex, false)
         updateChart(firstParam)
     }
 
     override fun onResume() {
         super.onResume()
         loadData()
+
         val selectedParam = spinnerParam.selectedItem?.toString()
             ?: HealthParams.ALL_PARAMS.firstOrNull()
             ?: return
+
         updateChart(selectedParam)
     }
 
     private fun initViews(root: View) {
         chart = root.findViewById(R.id.chartWbc)
+        cardSpinner = root.findViewById(R.id.cardSpinner)
         spinnerParam = root.findViewById(R.id.spinnerParam)
         btnParamInfo = root.findViewById(R.id.btnParamInfo)
         rvMeasurements = root.findViewById(R.id.rvMeasurements)
@@ -140,9 +145,8 @@ class HomeFragment : Fragment() {
             if (selectedParam == param) {
                 updateChart(param)
             } else {
-                spinnerParam.setSelection(
-                    HealthParams.ALL_PARAMS.indexOf(param).coerceAtLeast(0)
-                )
+                val index = HealthParams.ALL_PARAMS.indexOf(param).coerceAtLeast(0)
+                spinnerParam.setSelection(index)
             }
         }
     }
@@ -150,10 +154,10 @@ class HomeFragment : Fragment() {
     private fun setupSpinner() {
         val adapter = ArrayAdapter(
             requireContext(),
-            android.R.layout.simple_spinner_item,
+            R.layout.item_spinner_param,
             HealthParams.ALL_PARAMS
         )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        adapter.setDropDownViewResource(R.layout.item_spinner_param_dropdown)
         spinnerParam.adapter = adapter
 
         spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -474,5 +478,11 @@ class HomeFragment : Fragment() {
 
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private fun setupSpinnerTapArea() {
+        cardSpinner.setOnClickListener {
+            spinnerParam.performClick()
+        }
     }
 }

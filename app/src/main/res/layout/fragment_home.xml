@@ -24,52 +24,90 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardSpinner"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topSelectorRow"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        app:cardBackgroundColor="#FFFFFF"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="2dp"
-        app:strokeColor="#D8DCE6"
-        app:strokeWidth="1dp"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/tvTitle">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="18dp"
-            android:paddingEnd="12dp">
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSpinner"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="2dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnParamInfo"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:strokeColor="#D8DCE6"
+            app:strokeWidth="1dp">
 
-            <Spinner
-                android:id="@+id/spinnerParam"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@android:color/transparent"
-                android:spinnerMode="dropdown"
-                android:paddingEnd="8dp" />
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingStart="18dp"
+                android:paddingEnd="14dp">
 
-            <ImageButton
-                android:id="@+id/btnParamInfo"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Информация о параметре"
-                android:padding="6dp"
-                android:src="@drawable/ic_info"
-                android:tint="#5E6472" />
-        </LinearLayout>
+                <Spinner
+                    android:id="@+id/spinnerParam"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:background="@android:color/transparent"
+                    android:clickable="false"
+                    android:gravity="center_vertical"
+                    android:paddingTop="0dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="0dp"
+                    android:spinnerMode="dropdown"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/ivDropdownArrow"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
 
-    </com.google.android.material.card.MaterialCardView>
+
+                <ImageView
+                    android:id="@+id/ivDropdownArrow"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:clickable="false"
+                    android:contentDescription="@null"
+                    android:focusable="false"
+                    android:src="@drawable/ic_arrow_drop_down"
+                    android:tint="#5E6472"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+        <ImageButton
+            android:id="@+id/btnParamInfo"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@null"
+            android:contentDescription="Информация о параметре"
+            android:padding="8dp"
+            android:src="@drawable/ic_info"
+            android:tint="#5E6472"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardChart"
@@ -83,7 +121,7 @@
         app:cardElevation="3dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cardSpinner">
+        app:layout_constraintTop_toBottomOf="@id/topSelectorRow">
 
         <com.github.mikephil.charting.charts.LineChart
             android:id="@+id/chartWbc"
@@ -125,8 +163,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvHistoryTitle"
         tools:listitem="@layout/item_measurement" />
-
-
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
