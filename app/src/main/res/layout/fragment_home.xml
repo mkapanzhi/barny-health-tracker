@@ -84,7 +84,7 @@
                     android:contentDescription="@null"
                     android:focusable="false"
                     android:src="@drawable/ic_arrow_drop_down"
-                    android:tint="#5E6472"
+                    app:tint="#5E6472"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
@@ -102,7 +102,7 @@
             android:contentDescription="Информация о параметре"
             android:padding="8dp"
             android:src="@drawable/ic_info"
-            android:tint="#5E6472"
+            app:tint="#5E6472"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />

@@ -46,6 +46,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
         val tvQuickDate = view.findViewById<TextView>(R.id.tvQuickDate)
         val tvQuickNorm = view.findViewById<TextView>(R.id.tvQuickNorm)
         val etQuickValue = view.findViewById<EditText>(R.id.etQuickValue)
+        etQuickValue.filters = arrayOf(DecimalDigitsInputFilter(1))
         val tilQuickValue = view.findViewById<TextInputLayout>(R.id.tilQuickValue)
         val btnQuickCancel = view.findViewById<MaterialButton>(R.id.btnQuickCancel)
         val btnQuickSave = view.findViewById<MaterialButton>(R.id.btnQuickSave)
@@ -88,6 +89,10 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
                 tilQuickValue.error = "Введите число"
                 return@setOnClickListener
             }
+
+            val roundedValue = kotlin.math.round(parsedValue * 10f) / 10f
+
+            saveMeasurement(param, selectedTimestamp, roundedValue)
 
             tilQuickValue.error = null
 
