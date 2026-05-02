@@ -15,8 +15,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.barnyhealth.app.App
+import com.example.barnyhealth.data.local.db.entity.MeasurementEntity
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
@@ -27,14 +30,16 @@ import com.github.mikephil.charting.formatter.IFillFormatter
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.google.android.material.card.MaterialCardView
 
 class HomeFragment : Fragment() {
 
@@ -49,6 +54,10 @@ class HomeFragment : Fragment() {
     private lateinit var measurementAdapter: MeasurementAdapter
     private lateinit var dataRepo: DataRepository
     private lateinit var cardSpinner: MaterialCardView
+
+    private var roomMetricJob: Job? = null
+    private var spinnerItems: List<String> = emptyList()
+    private var currentRoomNorms: Pair<Float, Float>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,17 +76,12 @@ class HomeFragment : Fragment() {
         setupRecycler()
         loadData()
         setupChart()
-        setupSpinner()
         setupInfoButton()
         setupFab()
         applySafeArea(view)
         setupQuickAddResult()
         setupSpinnerTapArea()
-
-        val firstParam = HealthParams.ALL_PARAMS.firstOrNull() ?: return
-        val firstIndex = HealthParams.ALL_PARAMS.indexOf(firstParam).coerceAtLeast(0)
-        spinnerParam.setSelection(firstIndex, false)
-        updateChart(firstParam)
+        loadSpinnerItems()
     }
 
     override fun onResume() {
@@ -85,10 +89,15 @@ class HomeFragment : Fragment() {
         loadData()
 
         val selectedParam = spinnerParam.selectedItem?.toString()
-            ?: HealthParams.ALL_PARAMS.firstOrNull()
+            ?: spinnerItems.firstOrNull()
             ?: return
 
         updateChart(selectedParam)
+    }
+
+    override fun onDestroyView() {
+        roomMetricJob?.cancel()
+        super.onDestroyView()
     }
 
     private fun initViews(root: View) {
@@ -122,7 +131,7 @@ class HomeFragment : Fragment() {
     private fun setupFab() {
         fabAdd.setOnClickListener {
             val selectedParam = spinnerParam.selectedItem?.toString()
-                ?: HealthParams.ALL_PARAMS.firstOrNull()
+                ?: spinnerItems.firstOrNull()
                 ?: return@setOnClickListener
 
             QuickAddBottomSheet
@@ -145,17 +154,44 @@ class HomeFragment : Fragment() {
             if (selectedParam == param) {
                 updateChart(param)
             } else {
-                val index = HealthParams.ALL_PARAMS.indexOf(param).coerceAtLeast(0)
+                val index = spinnerItems.indexOf(param).coerceAtLeast(0)
                 spinnerParam.setSelection(index)
             }
         }
     }
 
-    private fun setupSpinner() {
+    private fun loadSpinnerItems() {
+        val app = requireActivity().application as App
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val legacyItems = HealthParams.ALL_PARAMS.toList()
+
+            val roomItems = try {
+                app.appContainer.getActiveMetricTypesUseCase()
+                    .map { it.displayName.trim() }
+            } catch (_: Throwable) {
+                emptyList()
+            }
+
+            spinnerItems = (legacyItems + roomItems)
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinctBy { it.lowercase(Locale.getDefault()) }
+
+            setupSpinner(spinnerItems)
+
+            val firstParam = spinnerItems.firstOrNull() ?: return@launch
+            val firstIndex = spinnerItems.indexOf(firstParam).coerceAtLeast(0)
+            spinnerParam.setSelection(firstIndex, false)
+            updateChart(firstParam)
+        }
+    }
+
+    private fun setupSpinner(items: List<String>) {
         val adapter = ArrayAdapter(
             requireContext(),
             R.layout.item_spinner_param,
-            HealthParams.ALL_PARAMS
+            items
         )
         adapter.setDropDownViewResource(R.layout.item_spinner_param_dropdown)
         spinnerParam.adapter = adapter
@@ -167,7 +203,7 @@ class HomeFragment : Fragment() {
                 position: Int,
                 id: Long
             ) {
-                val selectedParam = HealthParams.ALL_PARAMS[position]
+                val selectedParam = items[position]
                 updateChart(selectedParam)
             }
 
@@ -181,7 +217,11 @@ class HomeFragment : Fragment() {
 
             val abbreviation = HealthParams.ABBREVIATIONS[param] ?: param
             val description = HealthParams.DESCRIPTIONS[param] ?: "Описание пока не добавлено."
-            val normPair = HealthParams.NORMS[param]
+            val normPair = if (MetricRegistry.isRoomBacked(param)) {
+                currentRoomNorms ?: HealthParams.NORMS[param]
+            } else {
+                HealthParams.NORMS[param]
+            }
 
             val normText = if (normPair != null) {
                 "Норма: ${
@@ -225,11 +265,66 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateChart(param: String) {
+        roomMetricJob?.cancel()
+        currentRoomNorms = null
+
+        val metricCode = roomMetricCodeOrNull(param)
+        if (metricCode != null) {
+            loadMetricFromRoom(param, metricCode)
+            return
+        }
+
         val timestamps = datesData[param]?.toList() ?: emptyList()
         val values = chartsData[param]?.map { it.second } ?: emptyList()
+        renderChartAndList(param, timestamps, values)
+    }
 
+    private fun loadMetricFromRoom(param: String, metricCode: String) {
+        val app = requireActivity().application as App
+
+        roomMetricJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val unit = MetricRegistry.getUnitOrNull(param)
+                    ?: return@launch
+
+                currentRoomNorms = try {
+                    app.appContainer.getReferenceRangeForActivePetUseCase(
+                        metricCode = metricCode,
+                        unit = unit
+                    )
+                } catch (_: Throwable) {
+                    null
+                }
+
+                app.appContainer.observeMeasurementsByMetricCodeUseCase(metricCode)
+                    .collect { measurements ->
+                        renderRoomMeasurements(param, measurements)
+                    }
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private fun renderRoomMeasurements(param: String, items: List<MeasurementEntity>) {
+        val pairs = items
+            .mapNotNull { entity ->
+                val value = entity.value?.toFloat() ?: return@mapNotNull null
+                entity.measuredAt to value
+            }
+
+        val timestamps = pairs.map { it.first }
+        val values = pairs.map { it.second }
+
+        renderChartAndList(param, timestamps, values)
+    }
+
+    private fun renderChartAndList(
+        param: String,
+        timestamps: List<Long>,
+        values: List<Float>
+    ) {
         val pairedData = timestamps.zip(values) { timestamp, value ->
-            Pair(timestamp, value)
+            timestamp to value
         }.sortedBy { it.first }
 
         val sortedEntries = pairedData.mapIndexed { index, pair ->
@@ -238,7 +333,11 @@ class HomeFragment : Fragment() {
 
         val sortedTimestamps = pairedData.map { it.first }
         val paramColor = HealthParams.COLORS[param] ?: Color.GRAY
-        val norms = HealthParams.NORMS[param]
+        val norms = if (MetricRegistry.isRoomBacked(param)) {
+            currentRoomNorms ?: HealthParams.NORMS[param]
+        } else {
+            HealthParams.NORMS[param]
+        }
 
         setupYAxis(sortedEntries.map { it.y }, norms)
         setupXAxis(sortedEntries.size, sortedTimestamps)
@@ -254,7 +353,7 @@ class HomeFragment : Fragment() {
         setupNormLines(norms)
         chart.invalidate()
 
-        updateMeasurementsList(param)
+        updateMeasurementsListFromRaw(param, pairedData)
     }
 
     private fun setupXAxis(entryCount: Int, timestamps: List<Long>) {
@@ -387,15 +486,18 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun updateMeasurementsList(param: String) {
-        val timestamps = datesData[param]?.toList() ?: emptyList()
-        val values = chartsData[param]?.map { it.second } ?: emptyList()
-        val norms = HealthParams.NORMS[param]
+    private fun updateMeasurementsListFromRaw(
+        param: String,
+        pairedData: List<Pair<Long, Float>>
+    ) {
+        val norms = if (MetricRegistry.isRoomBacked(param)) {
+            currentRoomNorms ?: HealthParams.NORMS[param]
+        } else {
+            HealthParams.NORMS[param]
+        }
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
-        val items = timestamps.zip(values) { timestamp, value ->
-            Pair(timestamp, value)
-        }
+        val items = pairedData
             .sortedByDescending { it.first }
             .map { (timestamp, value) ->
                 val isOutOfNorm = norms?.let { value < it.first || value > it.second } ?: false
@@ -427,6 +529,23 @@ class HomeFragment : Fragment() {
     }
 
     private fun deleteMeasurement(param: String, timestamp: Long) {
+        val metricCode = roomMetricCodeOrNull(param)
+        if (metricCode != null) {
+            val app = requireActivity().application as App
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    app.appContainer.deleteMeasurementByMetricCodeUseCase(
+                        metricCode = metricCode,
+                        measuredAt = timestamp
+                    )
+                    updateChart(param)
+                } catch (_: Throwable) {
+                }
+            }
+            return
+        }
+
         val paramDates = datesData[param] ?: return
         val paramValues = chartsData[param] ?: return
 
@@ -449,6 +568,10 @@ class HomeFragment : Fragment() {
         dataRepo.saveChartsData(chartsData)
 
         updateChart(param)
+    }
+
+    private fun roomMetricCodeOrNull(param: String): String? {
+        return MetricRegistry.getMetricCodeOrNull(param)
     }
 
     private fun applySafeArea(root: View) {

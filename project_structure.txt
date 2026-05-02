@@ -1,0 +1,133 @@
+.
+├── app
+│   ├── src
+│   │   ├── androidTest
+│   │   │   └── java
+│   │   │       └── com
+│   │   │           └── example
+│   │   │               └── barnyhealth
+│   │   │                   └── ExampleInstrumentedTest.kt
+│   │   ├── main
+│   │   │   ├── java
+│   │   │   │   ├── com
+│   │   │   │   │   └── example
+│   │   │   │   │       └── barnyhealth
+│   │   │   │   │           ├── adapter
+│   │   │   │   │           │   └── ListAdapter.kt
+│   │   │   │   │           ├── ui
+│   │   │   │   │           │   └── theme
+│   │   │   │   │           │       ├── Color.kt
+│   │   │   │   │           │       ├── DecimalDigitsInputFilter.kt
+│   │   │   │   │           │       ├── Theme.kt
+│   │   │   │   │           │       └── Type.kt
+│   │   │   │   │           ├── BulkEntryFragment.kt
+│   │   │   │   │           ├── DataRepository.kt
+│   │   │   │   │           ├── HealthParams.kt
+│   │   │   │   │           ├── HistoryListActivity.kt
+│   │   │   │   │           ├── HomeFragment.kt
+│   │   │   │   │           ├── MainActivity.kt
+│   │   │   │   │           ├── MeasurementAdapter.kt
+│   │   │   │   │           ├── MeasurementItem.kt
+│   │   │   │   │           ├── QuickAddBottomSheet.kt
+│   │   │   │   │           └── TestFragment.kt
+│   │   │   │   └── ListItem.kt
+│   │   │   ├── res
+│   │   │   │   ├── color
+│   │   │   │   │   ├── bottom_nav_color.xml
+│   │   │   │   │   └── radio_tint.xml
+│   │   │   │   ├── drawable
+│   │   │   │   │   ├── barny.png
+│   │   │   │   │   ├── bg_info_button.xml
+│   │   │   │   │   ├── bg_main_gradient.xml
+│   │   │   │   │   ├── bg_spinner.xml
+│   │   │   │   │   ├── ic_arrow_drop_down.xml
+│   │   │   │   │   ├── ic_info.xml
+│   │   │   │   │   ├── ic_launcher_background.xml
+│   │   │   │   │   ├── ic_launcher_foreground.xml
+│   │   │   │   │   ├── ic_more_vert.xml
+│   │   │   │   │   └── ic_spinner_arrow.xml
+│   │   │   │   ├── layout
+│   │   │   │   │   ├── activity_bulk_entry.xml
+│   │   │   │   │   ├── activity_history_list.xml
+│   │   │   │   │   ├── activity_main.xml
+│   │   │   │   │   ├── bottom_sheet_quick_add.xml
+│   │   │   │   │   ├── fragment_bulk_entry.xml
+│   │   │   │   │   ├── fragment_home.xml
+│   │   │   │   │   ├── fragment_test.xml
+│   │   │   │   │   ├── item_history_row.xml
+│   │   │   │   │   ├── item_measurement.xml
+│   │   │   │   │   ├── item_spinner_param.xml
+│   │   │   │   │   └── item_spinner_param_dropdown.xml
+│   │   │   │   ├── menu
+│   │   │   │   │   ├── bottom_nav_menu.xml
+│   │   │   │   │   └── item_actions.xml
+│   │   │   │   ├── mipmap-anydpi-v26
+│   │   │   │   │   ├── ic_barny.xml
+│   │   │   │   │   ├── ic_barny_round.xml
+│   │   │   │   │   ├── ic_launcher.xml
+│   │   │   │   │   └── ic_launcher_round.xml
+│   │   │   │   ├── mipmap-hdpi
+│   │   │   │   │   ├── ic_barny.webp
+│   │   │   │   │   ├── ic_barny_foreground.webp
+│   │   │   │   │   ├── ic_barny_round.webp
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-mdpi
+│   │   │   │   │   ├── ic_barny.webp
+│   │   │   │   │   ├── ic_barny_foreground.webp
+│   │   │   │   │   ├── ic_barny_round.webp
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-xhdpi
+│   │   │   │   │   ├── ic_barny.webp
+│   │   │   │   │   ├── ic_barny_foreground.webp
+│   │   │   │   │   ├── ic_barny_round.webp
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-xxhdpi
+│   │   │   │   │   ├── ic_barny.webp
+│   │   │   │   │   ├── ic_barny_foreground.webp
+│   │   │   │   │   ├── ic_barny_round.webp
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── mipmap-xxxhdpi
+│   │   │   │   │   ├── ic_barny.webp
+│   │   │   │   │   ├── ic_barny_foreground.webp
+│   │   │   │   │   ├── ic_barny_round.webp
+│   │   │   │   │   ├── ic_launcher.webp
+│   │   │   │   │   └── ic_launcher_round.webp
+│   │   │   │   ├── navigation
+│   │   │   │   │   └── main_nav_graph.xml
+│   │   │   │   ├── values
+│   │   │   │   │   ├── colors.xml
+│   │   │   │   │   ├── ic_barny_background.xml
+│   │   │   │   │   ├── strings.xml
+│   │   │   │   │   └── themes.xml
+│   │   │   │   ├── values-night
+│   │   │   │   │   └── themes.xml
+│   │   │   │   └── xml
+│   │   │   │       ├── backup_rules.xml
+│   │   │   │       └── data_extraction_rules.xml
+│   │   │   ├── AndroidManifest.xml
+│   │   │   └── ic_barny-playstore.png
+│   │   └── test
+│   │       └── java
+│   │           └── com
+│   │               └── example
+│   │                   └── barnyhealth
+│   │                       └── ExampleUnitTest.kt
+│   ├── build.gradle.kts
+│   └── proguard-rules.pro
+├── gradle
+│   ├── wrapper
+│   │   └── gradle-wrapper.properties
+│   ├── gradle-daemon-jvm.properties
+│   └── libs.versions.toml
+├── build.gradle.kts
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── project_structure.txt
+└── settings.gradle.kts
+
+38 directories, 93 files

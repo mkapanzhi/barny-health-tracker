@@ -8,10 +8,13 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.os.bundleOf
+import androidx.lifecycle.lifecycleScope
+import com.example.barnyhealth.app.App
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,10 +49,11 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
         val tvQuickDate = view.findViewById<TextView>(R.id.tvQuickDate)
         val tvQuickNorm = view.findViewById<TextView>(R.id.tvQuickNorm)
         val etQuickValue = view.findViewById<EditText>(R.id.etQuickValue)
-        etQuickValue.filters = arrayOf(DecimalDigitsInputFilter(1))
         val tilQuickValue = view.findViewById<TextInputLayout>(R.id.tilQuickValue)
         val btnQuickCancel = view.findViewById<MaterialButton>(R.id.btnQuickCancel)
         val btnQuickSave = view.findViewById<MaterialButton>(R.id.btnQuickSave)
+
+        etQuickValue.filters = arrayOf(DecimalDigitsInputFilter(1))
 
         val shortName = HealthParams.ABBREVIATIONS[param] ?: param
         val fullName = param
@@ -90,21 +94,48 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val roundedValue = kotlin.math.round(parsedValue * 10f) / 10f
-
-            saveMeasurement(param, selectedTimestamp, roundedValue)
-
             tilQuickValue.error = null
 
-            saveMeasurement(param, selectedTimestamp, parsedValue)
+            val roundedValue = kotlin.math.round(parsedValue * 10f) / 10f
+            val app = requireActivity().application as App
 
-            parentFragmentManager.setFragmentResult(
-                REQUEST_KEY,
-                bundleOf(RESULT_PARAM to param)
-            )
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val roomMetric = MetricRegistry.getRoomMetricConfig(param)
 
-            Toast.makeText(requireContext(), "Значение добавлено", Toast.LENGTH_SHORT).show()
-            dismiss()
+                    if (roomMetric != null) {
+                        app.appContainer.addMeasurementByMetricCodeUseCase(
+                            metricCode = roomMetric.metricCode,
+                            value = roundedValue.toDouble(),
+                            unit = roomMetric.unit,
+                            measuredAt = selectedTimestamp,
+                            note = null,
+                            source = "quick_add"
+                        )
+                    } else {
+                        saveMeasurement(param, selectedTimestamp, roundedValue)
+                    }
+
+                    parentFragmentManager.setFragmentResult(
+                        REQUEST_KEY,
+                        bundleOf(RESULT_PARAM to param)
+                    )
+
+                    Toast.makeText(
+                        requireContext(),
+                        "Значение добавлено",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    dismiss()
+                } catch (t: Throwable) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Ошибка сохранения: ${t.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
         }
     }
 
