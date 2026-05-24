@@ -2,15 +2,15 @@ package com.example.barnyhealth.ui.weightdebug
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.barnyhealth.domain.AddMeasurementByMetricCodeUseCase
+import com.example.barnyhealth.domain.GetWeightHistoryUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.example.barnyhealth.domain.AddWeightMeasurementUseCase
-import com.example.barnyhealth.domain.GetWeightHistoryUseCase
 
 class WeightDebugViewModel(
-    private val addWeightMeasurementUseCase: AddWeightMeasurementUseCase,
+    private val addMeasurementByMetricCodeUseCase: AddMeasurementByMetricCodeUseCase,
     private val getWeightHistoryUseCase: GetWeightHistoryUseCase
 ) : ViewModel() {
 
@@ -25,10 +25,13 @@ class WeightDebugViewModel(
             )
 
             try {
-                val id = addWeightMeasurementUseCase(
-                    weightKg = 4.2,
+                val id = addMeasurementByMetricCodeUseCase(
+                    metricCode = "weight",
+                    value = 4.2,
+                    unit = "kg",
                     measuredAt = System.currentTimeMillis(),
-                    note = "Debug weight"
+                    note = "Debug weight",
+                    source = "debug"
                 )
 
                 _uiState.value = _uiState.value.copy(

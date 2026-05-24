@@ -62,4 +62,17 @@ interface MeasurementDao {
         metricTypeId: Long,
         measuredAt: Long
     ): Int
+
+    @Query("""
+    DELETE FROM measurements
+    WHERE pet_id = :petId
+      AND metric_type_id = :metricTypeId
+      AND measured_at BETWEEN :dayStart AND :dayEnd
+""")
+    suspend fun deleteByPetMetricAndDay(
+        petId: Long,
+        metricTypeId: Long,
+        dayStart: Long,
+        dayEnd: Long
+    ): Int
 }

@@ -1,6 +1,8 @@
 package com.example.barnyhealth.app
 
 import android.content.Context
+import com.example.barnyhealth.DataRepository
+import com.example.barnyhealth.LegacyMetricMetadataProvider
 import com.example.barnyhealth.data.local.db.DatabaseProvider
 import com.example.barnyhealth.data.preferences.SettingsDataStore
 import com.example.barnyhealth.data.repository.MeasurementRepository
@@ -8,16 +10,20 @@ import com.example.barnyhealth.data.repository.PetRepository
 import com.example.barnyhealth.domain.AddMeasurementByMetricCodeUseCase
 import com.example.barnyhealth.domain.DeleteMeasurementByMetricCodeUseCase
 import com.example.barnyhealth.domain.GetActiveMetricTypesUseCase
+import com.example.barnyhealth.domain.GetHomeMetricsUseCase
 import com.example.barnyhealth.domain.GetReferenceRangeForActivePetUseCase
 import com.example.barnyhealth.domain.GetWeightHistoryUseCase
+import com.example.barnyhealth.domain.ImportLegacyMeasurementsUseCase
 import com.example.barnyhealth.domain.ObserveMeasurementsByMetricCodeUseCase
 import com.example.barnyhealth.domain.bootstrap.EnsureDefaultPetUseCase
-
+import com.example.barnyhealth.domain.DeleteMeasurementByMetricCodeForDayUseCase
 class AppContainer(context: Context) {
 
     private val db = DatabaseProvider.get(context)
 
     val settingsDataStore = SettingsDataStore(context)
+    private val dataRepository = DataRepository(context)
+    private val legacyMetricMetadataProvider = LegacyMetricMetadataProvider()
 
     val petRepository = PetRepository(
         petDao = db.petDao(),
@@ -34,6 +40,12 @@ class AppContainer(context: Context) {
         speciesDao = db.speciesDao(),
         petRepository = petRepository,
         settingsDataStore = settingsDataStore
+    )
+
+    val importLegacyMeasurementsUseCase = ImportLegacyMeasurementsUseCase(
+        settingsDataStore = settingsDataStore,
+        measurementRepository = measurementRepository,
+        dataRepository = dataRepository
     )
 
     val getWeightHistoryUseCase = GetWeightHistoryUseCase(
@@ -61,6 +73,17 @@ class AppContainer(context: Context) {
     )
 
     val deleteMeasurementByMetricCodeUseCase = DeleteMeasurementByMetricCodeUseCase(
+        settingsDataStore = settingsDataStore,
+        measurementRepository = measurementRepository
+    )
+
+    val getHomeMetricsUseCase = GetHomeMetricsUseCase(
+        petRepository = petRepository,
+        measurementRepository = measurementRepository,
+        legacyMetricMetadataProvider = legacyMetricMetadataProvider
+    )
+
+    val deleteMeasurementByMetricCodeForDayUseCase = DeleteMeasurementByMetricCodeForDayUseCase(
         settingsDataStore = settingsDataStore,
         measurementRepository = measurementRepository
     )

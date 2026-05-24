@@ -35,6 +35,12 @@ class SettingsDataStore(
         }
         .map { prefs -> prefs[Keys.ACTIVE_PET_ID] }
 
+    val legacyImportDoneFlow: Flow<Boolean> = context.dataStore.data
+        .catch {
+            if (it is IOException) emit(emptyPreferences()) else throw it
+        }
+        .map { prefs -> prefs[Keys.LEGACY_IMPORT_DONE] ?: false }
+
     suspend fun setOnboardingCompleted(value: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[Keys.ONBOARDING_COMPLETED] = value

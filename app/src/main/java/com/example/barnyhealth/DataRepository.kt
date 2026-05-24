@@ -6,6 +6,12 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Type
 
+data class LegacyMeasurementPoint(
+    val key: String,
+    val value: Float,
+    val timestamp: Long
+)
+
 class DataRepository(private val context: Context) {
 
     private val chartsPrefs: SharedPreferences =
@@ -37,5 +43,25 @@ class DataRepository(private val context: Context) {
         val json = datesPrefs.getString("datesData", "{}") ?: "{}"
         val type: Type = object : TypeToken<MutableMap<String, MutableList<Long>>>() {}.type
         return gson.fromJson(json, type) ?: mutableMapOf()
+    }
+
+    fun loadLegacyMeasurementPoints(): List<LegacyMeasurementPoint> {
+        val chartsData = loadChartsData()
+        val datesData = loadDatesData()
+
+        return chartsData.flatMap { (key, values) ->
+            val timestamps = datesData[key].orEmpty()
+
+            values.mapIndexedNotNull { index, pair ->
+                val timestamp = timestamps.getOrNull(index) ?: return@mapIndexedNotNull null
+                val value = pair.second
+
+                LegacyMeasurementPoint(
+                    key = key,
+                    value = value,
+                    timestamp = timestamp
+                )
+            }
+        }
     }
 }

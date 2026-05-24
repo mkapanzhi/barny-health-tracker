@@ -117,6 +117,24 @@ class MeasurementRepository(
         )
     }
 
+    suspend fun deleteMeasurementByMetricAndDay(
+        petId: Long,
+        metricCode: String,
+        measuredAt: Long
+    ): Int {
+        val metricType = metricTypeDao.getByCode(metricCode)
+            ?: return 0
+
+        val (dayStart, dayEnd) = dayBounds(measuredAt)
+
+        return measurementDao.deleteByPetMetricAndDay(
+            petId = petId,
+            metricTypeId = metricType.id,
+            dayStart = dayStart,
+            dayEnd = dayEnd
+        )
+    }
+
     suspend fun getWeightHistory(petId: Long): List<MeasurementEntity> {
         return getMeasurementsByMetric(
             petId = petId,
