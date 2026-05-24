@@ -47,4 +47,12 @@ object MetricRegistry {
     fun isRoomBacked(param: String): Boolean {
         return getRoomMetricConfig(param) != null
     }
+
+    fun paramKeyForMetricCode(metricCode: String): String? {
+        return roomMetrics.entries
+            .firstOrNull { (_, config) ->
+                config.metricCode.equals(metricCode, ignoreCase = true)
+            }
+            ?.key
+    }
 }

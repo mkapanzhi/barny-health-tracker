@@ -1,11 +1,11 @@
 package com.example.barnyhealth.app
 
 import android.app.Application
+import com.example.barnyhealth.data.local.db.DatabaseProvider
+import com.example.barnyhealth.data.local.db.DatabaseSeeder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import com.example.barnyhealth.data.local.db.DatabaseProvider
-import com.example.barnyhealth.data.local.db.DatabaseSeeder
 
 class App : Application() {
 
@@ -20,8 +20,13 @@ class App : Application() {
         val db = DatabaseProvider.get(this)
 
         CoroutineScope(Dispatchers.IO).launch {
-            DatabaseSeeder(db).seed()
-            appContainer.ensureDefaultPetUseCase()
+            runCatching {
+                DatabaseSeeder(db).seed()
+                appContainer.ensureDefaultPetUseCase()
+                appContainer.importLegacyMeasurementsUseCase()
+            }.onFailure {
+                it.printStackTrace()
+            }
         }
     }
 }

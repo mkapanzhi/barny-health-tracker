@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
+import com.example.barnyhealth.domain.model.MetricSource
+import com.example.barnyhealth.domain.model.MetricUiModel
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.round
 
 class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
@@ -25,6 +28,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
     private var selectedTimestamp: Long = System.currentTimeMillis()
     private var selectedDateText: String = ""
+    private var currentMetricModel: MetricUiModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +46,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val param = requireArguments().getString(ARG_PARAM).orEmpty()
+        val paramKey = requireArguments().getString(ARG_PARAM).orEmpty()
 
         val tvQuickParamShort = view.findViewById<TextView>(R.id.tvQuickParamShort)
         val tvQuickParamFull = view.findViewById<TextView>(R.id.tvQuickParamFull)
@@ -55,21 +59,24 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
         etQuickValue.filters = arrayOf(DecimalDigitsInputFilter(1))
 
-        val shortName = HealthParams.ABBREVIATIONS[param] ?: param
-        val fullName = param
-        val normPair = HealthParams.NORMS[param]
-
         selectedDateText = formatDate(selectedTimestamp)
-
-        tvQuickParamShort.text = shortName
-        tvQuickParamFull.text = fullName
         tvQuickDate.text = selectedDateText
-        tvQuickNorm.text = if (normPair != null) {
-            "Норма: ${String.format(Locale.US, "%.1f", normPair.first)}–${
-                String.format(Locale.US, "%.1f", normPair.second)
-            }"
-        } else {
-            "Норма неизвестна"
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val app = requireActivity().application as App
+
+            currentMetricModel = try {
+                app.appContainer.getHomeMetricsUseCase()
+                    .firstOrNull { it.key == paramKey }
+            } catch (_: Throwable) {
+                null
+            }
+
+            val model = currentMetricModel
+
+            tvQuickParamShort.text = model?.abbreviation ?: paramKey
+            tvQuickParamFull.text = model?.displayName ?: paramKey
+            tvQuickNorm.text = formatNormText(model)
         }
 
         tvQuickDate.setOnClickListener {
@@ -96,29 +103,18 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
             tilQuickValue.error = null
 
-            val roundedValue = kotlin.math.round(parsedValue * 10f) / 10f
-            val app = requireActivity().application as App
+            val roundedValue = round(parsedValue * 10f) / 10f
 
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
-                    val roomMetric = MetricRegistry.getRoomMetricConfig(param)
-
-                    if (roomMetric != null) {
-                        app.appContainer.addMeasurementByMetricCodeUseCase(
-                            metricCode = roomMetric.metricCode,
-                            value = roundedValue.toDouble(),
-                            unit = roomMetric.unit,
-                            measuredAt = selectedTimestamp,
-                            note = null,
-                            source = "quick_add"
-                        )
-                    } else {
-                        saveMeasurement(param, selectedTimestamp, roundedValue)
-                    }
+                    saveMeasurement(
+                        paramKey = paramKey,
+                        value = roundedValue
+                    )
 
                     parentFragmentManager.setFragmentResult(
                         REQUEST_KEY,
-                        bundleOf(RESULT_PARAM to param)
+                        bundleOf(RESULT_PARAM to paramKey)
                     )
 
                     Toast.makeText(
@@ -136,6 +132,43 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
                     ).show()
                 }
             }
+        }
+    }
+
+    private suspend fun saveMeasurement(paramKey: String, value: Float) {
+        val model = currentMetricModel
+        val app = requireActivity().application as App
+
+        if (model?.source == MetricSource.ROOM && model.roomMetricCode != null) {
+            app.appContainer.addMeasurementByMetricCodeUseCase(
+                metricCode = model.roomMetricCode,
+                value = value.toDouble(),
+                unit = model.unit,
+                measuredAt = selectedTimestamp,
+                note = null,
+                source = "quick_add"
+            )
+            return
+        }
+
+        saveLegacyMeasurement(
+            param = paramKey,
+            timestamp = selectedTimestamp,
+            value = value
+        )
+    }
+
+    private fun formatNormText(model: MetricUiModel?): String {
+        val normMin = model?.normMin
+        val normMax = model?.normMax
+
+        return if (normMin != null && normMax != null) {
+            val unitSuffix = model.unit.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+            "Норма: ${String.format(Locale.US, "%.1f", normMin)}–${
+                String.format(Locale.US, "%.1f", normMax)
+            }$unitSuffix"
+        } else {
+            "Норма неизвестна"
         }
     }
 
@@ -158,7 +191,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
         return SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestamp))
     }
 
-    private fun saveMeasurement(param: String, timestamp: Long, value: Float) {
+    private fun saveLegacyMeasurement(param: String, timestamp: Long, value: Float) {
         val chartsData = dataRepo.loadChartsData().toMutableMap()
         val datesData = dataRepo.loadDatesData().toMutableMap()
 

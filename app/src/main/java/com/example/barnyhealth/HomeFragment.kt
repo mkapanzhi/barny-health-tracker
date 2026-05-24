@@ -20,6 +20,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.barnyhealth.app.App
 import com.example.barnyhealth.data.local.db.entity.MeasurementEntity
+import com.example.barnyhealth.domain.model.MetricSource
+import com.example.barnyhealth.domain.model.MetricUiModel
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
@@ -57,6 +59,8 @@ class HomeFragment : Fragment() {
 
     private var roomMetricJob: Job? = null
     private var spinnerItems: List<String> = emptyList()
+    private var metricModels: List<MetricUiModel> = emptyList()
+    private var currentMetricModel: MetricUiModel? = null
     private var currentRoomNorms: Pair<Float, Float>? = null
 
     override fun onCreateView(
@@ -81,18 +85,19 @@ class HomeFragment : Fragment() {
         applySafeArea(view)
         setupQuickAddResult()
         setupSpinnerTapArea()
-        loadSpinnerItems()
+        loadMetricModelsAndSetupSpinner()
     }
 
     override fun onResume() {
         super.onResume()
-        loadData()
 
-        val selectedParam = spinnerParam.selectedItem?.toString()
-            ?: spinnerItems.firstOrNull()
-            ?: return
+        val selectedModel = currentMetricModel ?: metricModels.firstOrNull() ?: return
 
-        updateChart(selectedParam)
+        if (selectedModel.source == MetricSource.LEGACY) {
+            loadData()
+        }
+
+        updateChart(selectedModel.key)
     }
 
     override fun onDestroyView() {
@@ -112,9 +117,7 @@ class HomeFragment : Fragment() {
     private fun setupRecycler() {
         measurementAdapter = MeasurementAdapter(
             measurements = mutableListOf(),
-            onDelete = { item ->
-                confirmDelete(item)
-            }
+            onDelete = ::confirmDelete
         )
 
         rvMeasurements.layoutManager = LinearLayoutManager(requireContext())
@@ -130,12 +133,10 @@ class HomeFragment : Fragment() {
 
     private fun setupFab() {
         fabAdd.setOnClickListener {
-            val selectedParam = spinnerParam.selectedItem?.toString()
-                ?: spinnerItems.firstOrNull()
-                ?: return@setOnClickListener
+            val model = currentMetricModel ?: return@setOnClickListener
 
             QuickAddBottomSheet
-                .newInstance(selectedParam)
+                .newInstance(model.key)
                 .show(parentFragmentManager, "QuickAddBottomSheet")
         }
     }
@@ -145,95 +146,124 @@ class HomeFragment : Fragment() {
             QuickAddBottomSheet.REQUEST_KEY,
             viewLifecycleOwner
         ) { _, bundle ->
-            val param = bundle.getString(QuickAddBottomSheet.RESULT_PARAM)
+            val paramKey = bundle.getString(QuickAddBottomSheet.RESULT_PARAM)
                 ?: return@setFragmentResultListener
 
-            loadData()
+            val resultModel = getMetricModel(paramKey)
 
-            val selectedParam = spinnerParam.selectedItem?.toString()
-            if (selectedParam == param) {
-                updateChart(param)
+            if (resultModel?.source == MetricSource.LEGACY) {
+                loadData()
+            }
+
+            val selectedKey = currentMetricModel?.key
+            if (selectedKey == paramKey) {
+                updateChart(paramKey)
             } else {
-                val index = spinnerItems.indexOf(param).coerceAtLeast(0)
-                spinnerParam.setSelection(index)
+                val index = metricModels.indexOfFirst { it.key == paramKey }
+                if (index >= 0) {
+                    spinnerParam.setSelection(index)
+                }
             }
         }
     }
 
-    private fun loadSpinnerItems() {
+    private fun loadMetricModelsAndSetupSpinner() {
         val app = requireActivity().application as App
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val legacyItems = HealthParams.ALL_PARAMS.toList()
-
-            val roomItems = try {
-                app.appContainer.getActiveMetricTypesUseCase()
-                    .map { it.displayName.trim() }
+            metricModels = try {
+                app.appContainer.getHomeMetricsUseCase()
             } catch (_: Throwable) {
                 emptyList()
             }
 
-            spinnerItems = (legacyItems + roomItems)
-                .map { it.trim() }
-                .filter { it.isNotBlank() }
-                .distinctBy { it.lowercase(Locale.getDefault()) }
+            spinnerItems = metricModels.map { it.displayName }
 
-            setupSpinner(spinnerItems)
+            val adapter = ArrayAdapter(
+                requireContext(),
+                R.layout.item_spinner_param,
+                spinnerItems
+            )
+            adapter.setDropDownViewResource(R.layout.item_spinner_param_dropdown)
+            spinnerParam.adapter = adapter
 
-            val firstParam = spinnerItems.firstOrNull() ?: return@launch
-            val firstIndex = spinnerItems.indexOf(firstParam).coerceAtLeast(0)
-            spinnerParam.setSelection(firstIndex, false)
-            updateChart(firstParam)
+            spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    val model = metricModels.getOrNull(position) ?: return
+                    if (currentMetricModel?.key == model.key) return
+
+                    currentMetricModel = model
+                    updateChart(model.key)
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+
+            val firstModel = metricModels.firstOrNull()
+            if (firstModel == null) {
+                currentMetricModel = null
+                renderChartAndList(
+                    param = "",
+                    timestamps = emptyList(),
+                    values = emptyList()
+                )
+                return@launch
+            }
+
+            currentMetricModel = firstModel
+            spinnerParam.setSelection(0, false)
+            updateChart(firstModel.key)
         }
     }
 
-    private fun setupSpinner(items: List<String>) {
-        val adapter = ArrayAdapter(
-            requireContext(),
-            R.layout.item_spinner_param,
-            items
-        )
-        adapter.setDropDownViewResource(R.layout.item_spinner_param_dropdown)
-        spinnerParam.adapter = adapter
+    private fun getMetricModel(param: String): MetricUiModel? {
+        return metricModels.firstOrNull { it.key == param }
+    }
 
-        spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View?,
-                position: Int,
-                id: Long
-            ) {
-                val selectedParam = items[position]
-                updateChart(selectedParam)
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+    private fun resolveNorms(model: MetricUiModel?): Pair<Float, Float>? {
+        return when {
+            currentRoomNorms != null -> currentRoomNorms
+            model?.normMin != null && model.normMax != null -> model.normMin to model.normMax
+            else -> null
         }
+    }
+
+    private fun resolveMetricColor(model: MetricUiModel?): Int {
+        return model?.color ?: Color.GRAY
+    }
+
+    private fun resolveChartLabel(param: String, model: MetricUiModel?): String {
+        return model?.displayName ?: if (param.isNotBlank()) param else "Нет данных"
+    }
+
+    private fun resolveMeasurementParamLabel(param: String, model: MetricUiModel?): String {
+        return model?.abbreviation ?: model?.displayName ?: param
     }
 
     private fun setupInfoButton() {
         btnParamInfo.setOnClickListener {
-            val param = spinnerParam.selectedItem?.toString() ?: return@setOnClickListener
-
-            val abbreviation = HealthParams.ABBREVIATIONS[param] ?: param
-            val description = HealthParams.DESCRIPTIONS[param] ?: "Описание пока не добавлено."
-            val normPair = if (MetricRegistry.isRoomBacked(param)) {
-                currentRoomNorms ?: HealthParams.NORMS[param]
-            } else {
-                HealthParams.NORMS[param]
-            }
+            val model = currentMetricModel ?: return@setOnClickListener
+            val normPair = resolveNorms(model)
 
             val normText = if (normPair != null) {
+                val unitSuffix = model.unit.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
                 "Норма: ${
                     String.format(Locale.US, "%.1f", normPair.first)
-                }–${String.format(Locale.US, "%.1f", normPair.second)}"
+                }–${
+                    String.format(Locale.US, "%.1f", normPair.second)
+                }$unitSuffix"
             } else {
                 "Норма неизвестна"
             }
 
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("$abbreviation • $param")
-                .setMessage("$description\n\n$normText")
+                .setTitle("${model.abbreviation} • ${model.displayName}")
+                .setMessage("${model.description}\n\n$normText")
                 .setPositiveButton("Понятно", null)
                 .show()
         }
@@ -268,12 +298,18 @@ class HomeFragment : Fragment() {
         roomMetricJob?.cancel()
         currentRoomNorms = null
 
-        val metricCode = roomMetricCodeOrNull(param)
-        if (metricCode != null) {
-            loadMetricFromRoom(param, metricCode)
+        val model = getMetricModel(param)
+        currentMetricModel = model
+
+        if (model?.source == MetricSource.ROOM && model.roomMetricCode != null) {
+            loadMetricFromRoom(param, model.roomMetricCode)
             return
         }
 
+        renderLegacyMetric(param)
+    }
+
+    private fun renderLegacyMetric(param: String) {
         val timestamps = datesData[param]?.toList() ?: emptyList()
         val values = chartsData[param]?.map { it.second } ?: emptyList()
         renderChartAndList(param, timestamps, values)
@@ -284,16 +320,15 @@ class HomeFragment : Fragment() {
 
         roomMetricJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val unit = MetricRegistry.getUnitOrNull(param)
-                    ?: return@launch
+                val model = getMetricModel(param) ?: return@launch
 
                 currentRoomNorms = try {
                     app.appContainer.getReferenceRangeForActivePetUseCase(
                         metricCode = metricCode,
-                        unit = unit
+                        unit = model.unit
                     )
                 } catch (_: Throwable) {
-                    null
+                    resolveNorms(model)
                 }
 
                 app.appContainer.observeMeasurementsByMetricCodeUseCase(metricCode)
@@ -303,19 +338,6 @@ class HomeFragment : Fragment() {
             } catch (_: Throwable) {
             }
         }
-    }
-
-    private fun renderRoomMeasurements(param: String, items: List<MeasurementEntity>) {
-        val pairs = items
-            .mapNotNull { entity ->
-                val value = entity.value?.toFloat() ?: return@mapNotNull null
-                entity.measuredAt to value
-            }
-
-        val timestamps = pairs.map { it.first }
-        val values = pairs.map { it.second }
-
-        renderChartAndList(param, timestamps, values)
     }
 
     private fun renderChartAndList(
@@ -332,17 +354,18 @@ class HomeFragment : Fragment() {
         }
 
         val sortedTimestamps = pairedData.map { it.first }
-        val paramColor = HealthParams.COLORS[param] ?: Color.GRAY
-        val norms = if (MetricRegistry.isRoomBacked(param)) {
-            currentRoomNorms ?: HealthParams.NORMS[param]
-        } else {
-            HealthParams.NORMS[param]
-        }
+        val model = getMetricModel(param)
+        val paramColor = resolveMetricColor(model)
+        val norms = resolveNorms(model)
 
         setupYAxis(sortedEntries.map { it.y }, norms)
         setupXAxis(sortedEntries.size, sortedTimestamps)
 
-        val mainDataSet = createMainDataSet(sortedEntries, param, paramColor)
+        val mainDataSet = createMainDataSet(
+            entries = sortedEntries,
+            label = resolveChartLabel(param, model),
+            paramColor = paramColor
+        )
         val fillDataSet = createNormFillDataSet(sortedEntries.size, norms)
 
         val allDataSets = mutableListOf<ILineDataSet>()
@@ -377,7 +400,7 @@ class HomeFragment : Fragment() {
 
     private fun createMainDataSet(
         entries: List<Entry>,
-        param: String,
+        label: String,
         paramColor: Int
     ): LineDataSet {
         if (entries.isEmpty()) {
@@ -389,7 +412,7 @@ class HomeFragment : Fragment() {
             }
         }
 
-        return LineDataSet(entries, param).apply {
+        return LineDataSet(entries, label).apply {
             color = paramColor
             setCircleColor(paramColor)
             lineWidth = 3f
@@ -490,11 +513,8 @@ class HomeFragment : Fragment() {
         param: String,
         pairedData: List<Pair<Long, Float>>
     ) {
-        val norms = if (MetricRegistry.isRoomBacked(param)) {
-            currentRoomNorms ?: HealthParams.NORMS[param]
-        } else {
-            HealthParams.NORMS[param]
-        }
+        val model = getMetricModel(param)
+        val norms = resolveNorms(model)
         val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
         val items = pairedData
@@ -505,9 +525,9 @@ class HomeFragment : Fragment() {
                 MeasurementItem(
                     timestamp = timestamp,
                     date = dateFormat.format(Date(timestamp)),
-                    param = HealthParams.ABBREVIATIONS[param] ?: param,
+                    param = resolveMeasurementParamLabel(param, model),
                     value = String.format(Locale.US, "%.1f", value),
-                    unit = "",
+                    unit = model?.unit ?: "",
                     isOutOfNorm = isOutOfNorm
                 )
             }
@@ -515,27 +535,16 @@ class HomeFragment : Fragment() {
         measurementAdapter.updateItems(items)
     }
 
-    private fun confirmDelete(item: MeasurementItem) {
-        val param = spinnerParam.selectedItem?.toString() ?: return
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Удалить запись?")
-            .setMessage("${item.date} — ${item.value}")
-            .setNegativeButton("Отмена", null)
-            .setPositiveButton("Удалить") { _, _ ->
-                deleteMeasurement(param, item.timestamp)
-            }
-            .show()
-    }
-
     private fun deleteMeasurement(param: String, timestamp: Long) {
-        val metricCode = roomMetricCodeOrNull(param)
-        if (metricCode != null) {
+        val model = getMetricModel(param)
+        val metricCode = model?.roomMetricCode ?: MetricRegistry.getMetricCodeOrNull(param)
+
+        if (model?.source == MetricSource.ROOM && metricCode != null) {
             val app = requireActivity().application as App
 
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
-                    app.appContainer.deleteMeasurementByMetricCodeUseCase(
+                    app.appContainer.deleteMeasurementByMetricCodeForDayUseCase(
                         metricCode = metricCode,
                         measuredAt = timestamp
                     )
@@ -568,10 +577,6 @@ class HomeFragment : Fragment() {
         dataRepo.saveChartsData(chartsData)
 
         updateChart(param)
-    }
-
-    private fun roomMetricCodeOrNull(param: String): String? {
-        return MetricRegistry.getMetricCodeOrNull(param)
     }
 
     private fun applySafeArea(root: View) {
@@ -607,5 +612,32 @@ class HomeFragment : Fragment() {
         cardSpinner.setOnClickListener {
             spinnerParam.performClick()
         }
+    }
+
+    private fun confirmDelete(item: MeasurementItem) {
+        val model = currentMetricModel ?: return
+        val param = model.key
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Удалить запись?")
+            .setMessage("${item.date} — ${item.value}")
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Удалить") { _, _ ->
+                deleteMeasurement(param, item.timestamp)
+            }
+            .show()
+    }
+
+    private fun renderRoomMeasurements(param: String, items: List<MeasurementEntity>) {
+        val pairs = items
+            .mapNotNull { entity ->
+                val value = entity.value?.toFloat() ?: return@mapNotNull null
+                entity.measuredAt to value
+            }
+
+        val timestamps = pairs.map { it.first }
+        val values = pairs.map { it.second }
+
+        renderChartAndList(param, timestamps, values)
     }
 }
