@@ -24,6 +24,7 @@ class App : Application() {
                 DatabaseSeeder(db).seed()
                 appContainer.ensureDefaultPetUseCase()
                 appContainer.importLegacyMeasurementsUseCase()
+                appContainer.cleanupMigratedLegacyMeasurementsUseCase()
             }.onFailure {
                 it.printStackTrace()
             }

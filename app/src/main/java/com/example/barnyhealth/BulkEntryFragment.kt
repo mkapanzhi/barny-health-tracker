@@ -6,13 +6,26 @@ import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.barnyhealth.app.App
+import com.example.barnyhealth.domain.model.MetricSource
+import com.example.barnyhealth.domain.model.MetricUiModel
+import kotlinx.coroutines.launch
 import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class BulkEntryFragment : Fragment() {
 
@@ -25,15 +38,14 @@ class BulkEntryFragment : Fragment() {
     private lateinit var btnSave: Button
     private lateinit var btnBack: Button
 
-    private lateinit var dataRepo: DataRepository
+
 
     private var selectedDate = Date()
 
     private val inputMap = mutableMapOf<String, EditText>()
     private val rowMap = mutableMapOf<String, View>()
 
-    private var chartsData = mutableMapOf<String, MutableList<Pair<Float, Float>>>()
-    private var datesData = mutableMapOf<String, MutableList<Long>>()
+    private var metricModels: List<MetricUiModel> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,19 +67,27 @@ class BulkEntryFragment : Fragment() {
         btnSave = view.findViewById(R.id.btnSaveBulk)
         btnBack = view.findViewById(R.id.btnBackBulk)
 
-        dataRepo = DataRepository(requireContext())
-        chartsData.putAll(dataRepo.loadChartsData())
-        datesData.putAll(dataRepo.loadDatesData())
 
         selectedDate = normalizeDate(selectedDate)
 
         setupDatePicker()
-        buildFields()
         setupModeSwitcher()
         setupSaveButton()
 
-        rbAll.isChecked = true
-        applyFilter()
+        viewLifecycleOwner.lifecycleScope.launch {
+            val app = requireActivity().application as App
+
+            metricModels = try {
+                app.appContainer.getHomeMetricsUseCase()
+                    .sortedBy { it.displayName.lowercase(Locale.getDefault()) }
+            } catch (_: Throwable) {
+                emptyList()
+            }
+
+            buildFields()
+            rbAll.isChecked = true
+            applyFilter()
+        }
 
         btnBack.setOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
@@ -101,9 +121,7 @@ class BulkEntryFragment : Fragment() {
         inputMap.clear()
         rowMap.clear()
 
-        val sortedParams = HealthParams.ALL_PARAMS.sorted()
-
-        sortedParams.forEach { param ->
+        metricModels.forEach { model ->
             val row = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.TOP
@@ -126,8 +144,8 @@ class BulkEntryFragment : Fragment() {
                 }
             }
 
-            val shortName = HealthParams.ABBREVIATIONS[param] ?: param
-            val fullName = if (shortName != param) param else ""
+            val shortName = model.abbreviation.ifBlank { model.displayName }
+            val fullName = model.displayName.takeIf { it != shortName }.orEmpty()
 
             val tvShortName = TextView(requireContext()).apply {
                 text = shortName
@@ -144,7 +162,12 @@ class BulkEntryFragment : Fragment() {
             }
 
             val etValue = EditText(requireContext()).apply {
-                hint = "Добавить"
+                val unitSuffix = model.unit
+                    .takeIf { it.isNotBlank() }
+                    ?.let { " ($it)" }
+                    .orEmpty()
+
+                hint = "Добавить$unitSuffix"
                 inputType = InputType.TYPE_CLASS_NUMBER or
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
                 setSingleLine()
@@ -163,8 +186,8 @@ class BulkEntryFragment : Fragment() {
 
             containerFields.addView(row)
 
-            inputMap[param] = etValue
-            rowMap[param] = row
+            inputMap[model.key] = etValue
+            rowMap[model.key] = row
         }
     }
 
@@ -212,49 +235,45 @@ class BulkEntryFragment : Fragment() {
             }
 
             val normalizedTimestamp = normalizeDate(selectedDate).time
-            var savedCount = 0
 
-            inputMap.forEach { (param, editText) ->
-                val valueText = editText.text.toString().trim()
-                if (valueText.isEmpty()) return@forEach
+            viewLifecycleOwner.lifecycleScope.launch {
+                val app = requireActivity().application as App
+                var savedCount = 0
 
-                val rawValue = valueText.toFloatOrNull() ?: return@forEach
-                val value = df.format(rawValue).toFloat()
+                inputMap.forEach { (param, editText) ->
+                    val valueText = editText.text.toString().trim()
+                    if (valueText.isEmpty()) return@forEach
 
-                val paramDates = datesData.getOrPut(param) { mutableListOf() }
-                val paramValues = chartsData.getOrPut(param) { mutableListOf() }
+                    val rawValue = valueText.toFloatOrNull() ?: return@forEach
+                    val value = df.format(rawValue).toFloat()
 
-                val existingIndex = paramDates.indexOfFirst {
-                    normalizeTimestamp(it) == normalizedTimestamp
+                    val model = metricModels.firstOrNull { it.key == param }
+
+                    app.appContainer.saveMetricMeasurementUseCase(
+                        model = model,
+                        fallbackParamKey = param,
+                        value = value,
+                        measuredAt = normalizedTimestamp,
+                        source = "bulk_entry"
+                    )
+
+                    savedCount++
                 }
 
-                if (existingIndex >= 0) {
-                    paramDates[existingIndex] = normalizedTimestamp
-                    paramValues[existingIndex] = Pair(paramValues[existingIndex].first, value)
+                if (savedCount > 0) {
+                    Toast.makeText(
+                        requireContext(),
+                        "Сохранено параметров: $savedCount",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    requireActivity().onBackPressedDispatcher.onBackPressed()
                 } else {
-                    paramDates.add(normalizedTimestamp)
-                    paramValues.add(Pair(0f, value))
+                    Toast.makeText(
+                        requireContext(),
+                        "Нет заполненных значений для сохранения",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-
-                savedCount++
-            }
-
-            dataRepo.saveChartsData(chartsData)
-            dataRepo.saveDatesData(datesData)
-
-            if (savedCount > 0) {
-                Toast.makeText(
-                    requireContext(),
-                    "Сохранено параметров: $savedCount",
-                    Toast.LENGTH_LONG
-                ).show()
-                requireActivity().onBackPressedDispatcher.onBackPressed()
-            } else {
-                Toast.makeText(
-                    requireContext(),
-                    "Нет заполненных значений для сохранения",
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         }
     }
