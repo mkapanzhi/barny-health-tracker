@@ -55,4 +55,13 @@ object MetricRegistry {
             }
             ?.key
     }
+
+    fun roomBackedParamKeys(): Set<String> {
+        return roomMetrics.keys
+    }
+
+    fun legacyOnlyParamKeys(allParams: List<String>): List<String> {
+        val roomKeys = roomBackedParamKeys()
+        return allParams.filterNot { it in roomKeys }
+    }
 }

@@ -7,11 +7,13 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 class HistoryListActivity : AppCompatActivity() {
+
     private lateinit var adapter: ListAdapter
     private lateinit var dataRepo: DataRepository
+
     private val norms = HealthParams.NORMS
     private var selectedParams = setOf("WBC", "ALT")
     private val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
@@ -21,12 +23,12 @@ class HistoryListActivity : AppCompatActivity() {
         setContentView(R.layout.activity_history_list)
 
         dataRepo = DataRepository(this)
-        val recyclerView =
-            findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerView)
+
+        val recyclerView = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerView)
         val checkWBC = findViewById<CheckBox>(R.id.checkWBC)
         val checkALT = findViewById<CheckBox>(R.id.checkALT)
 
-        adapter = ListAdapter(norms) { param, position -> onDelete(param, position) }
+        adapter = ListAdapter(norms) { item -> onDelete(item) }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
@@ -50,16 +52,17 @@ class HistoryListActivity : AppCompatActivity() {
     }
 
     private fun loadHistory(): List<ListItem> {
-        val chartsData = dataRepo.loadChartsData()
-        val datesData = dataRepo.loadDatesData() // ✅ Загружаем ДАТЫ!
+        val chartsData = dataRepo.loadLegacyOnlyChartsData()
+        val datesData = dataRepo.loadLegacyOnlyDatesData()
 
         val allItems = mutableListOf<ListItem>()
 
         selectedParams.forEach { param ->
-            val points = chartsData[param] ?: emptyList()
-            val timestamps = datesData[param] ?: emptyList()
+            if (!dataRepo.isLegacyOnlyParam(param)) return@forEach
 
-            // ✅ Синхронизируем по порядку добавления
+            val points = chartsData[param].orEmpty()
+            val timestamps = datesData[param].orEmpty()
+
             val paired = points.zip(timestamps) { point, timestamp ->
                 ListItem(param, point.second, timestamp)
             }
@@ -72,20 +75,26 @@ class HistoryListActivity : AppCompatActivity() {
         return sortedItems
     }
 
-    private fun onDelete(param: String, position: Int) {
-        // ✅ Загружаем АКТУАЛЬНЫЕ данные
-        val chartsData = dataRepo.loadChartsData().toMutableMap()
-        val datesData = dataRepo.loadDatesData().toMutableMap()
+    private fun onDelete(item: ListItem) {
+        if (!dataRepo.isLegacyOnlyParam(item.param)) {
+            Toast.makeText(
+                this,
+                "Эта запись хранится в Room и не удаляется через legacy history",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
 
-        // ✅ Удаляем ИЗ ОБОИХ списков по тому же индексу!
-        chartsData[param]?.removeAt(position)
-        datesData[param]?.removeAt(position)
+        val deleted = dataRepo.deleteLegacyMeasurementByTimestamp(
+            param = item.param,
+            timestamp = item.timestamp
+        )
 
-        // ✅ СОХРАНЯЕМ изменения
-        dataRepo.saveChartsData(chartsData)
-        dataRepo.saveDatesData(datesData)
-
-        Toast.makeText(this, "🗑️ Удалено из $param", Toast.LENGTH_SHORT).show()
-        loadHistory()
+        if (deleted) {
+            Toast.makeText(this, "Удалено из ${item.param}", Toast.LENGTH_SHORT).show()
+            loadHistory()
+        } else {
+            Toast.makeText(this, "Не удалось удалить запись", Toast.LENGTH_SHORT).show()
+        }
     }
 }

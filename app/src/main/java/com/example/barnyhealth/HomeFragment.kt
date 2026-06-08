@@ -90,14 +90,7 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-
-        val selectedModel = currentMetricModel ?: metricModels.firstOrNull() ?: return
-
-        if (selectedModel.source == MetricSource.LEGACY) {
-            loadData()
-        }
-
-        updateChart(selectedModel.key)
+        refreshCurrentMetric()
     }
 
     override fun onDestroyView() {
@@ -127,8 +120,9 @@ class HomeFragment : Fragment() {
     private fun loadData() {
         chartsData.clear()
         datesData.clear()
-        chartsData.putAll(dataRepo.loadChartsData())
-        datesData.putAll(dataRepo.loadDatesData())
+
+        chartsData.putAll(dataRepo.loadLegacyOnlyChartsData())
+        datesData.putAll(dataRepo.loadLegacyOnlyDatesData())
     }
 
     private fun setupFab() {
@@ -149,20 +143,16 @@ class HomeFragment : Fragment() {
             val paramKey = bundle.getString(QuickAddBottomSheet.RESULT_PARAM)
                 ?: return@setFragmentResultListener
 
-            val resultModel = getMetricModel(paramKey)
+            val selectedKey = currentMetricModel?.key
 
-            if (resultModel?.source == MetricSource.LEGACY) {
-                loadData()
+            if (selectedKey == paramKey) {
+                refreshCurrentMetric(forceReloadLegacyCache = isLegacyMetric(paramKey))
+                return@setFragmentResultListener
             }
 
-            val selectedKey = currentMetricModel?.key
-            if (selectedKey == paramKey) {
-                updateChart(paramKey)
-            } else {
-                val index = metricModels.indexOfFirst { it.key == paramKey }
-                if (index >= 0) {
-                    spinnerParam.setSelection(index)
-                }
+            val index = metricModels.indexOfFirst { it.key == paramKey }
+            if (index >= 0) {
+                spinnerParam.setSelection(index)
             }
         }
     }
@@ -217,7 +207,7 @@ class HomeFragment : Fragment() {
 
             currentMetricModel = firstModel
             spinnerParam.setSelection(0, false)
-            updateChart(firstModel.key)
+            refreshCurrentMetric(forceReloadLegacyCache = firstModel.source == MetricSource.LEGACY)
         }
     }
 
@@ -225,45 +215,21 @@ class HomeFragment : Fragment() {
         return metricModels.firstOrNull { it.key == param }
     }
 
-    private fun resolveNorms(model: MetricUiModel?): Pair<Float, Float>? {
-        return when {
-            currentRoomNorms != null -> currentRoomNorms
-            model?.normMin != null && model.normMax != null -> model.normMin to model.normMax
-            else -> null
-        }
-    }
-
-    private fun resolveMetricColor(model: MetricUiModel?): Int {
-        return model?.color ?: Color.GRAY
-    }
-
-    private fun resolveChartLabel(param: String, model: MetricUiModel?): String {
-        return model?.displayName ?: if (param.isNotBlank()) param else "Нет данных"
-    }
-
-    private fun resolveMeasurementParamLabel(param: String, model: MetricUiModel?): String {
-        return model?.abbreviation ?: model?.displayName ?: param
-    }
 
     private fun setupInfoButton() {
         btnParamInfo.setOnClickListener {
             val model = currentMetricModel ?: return@setOnClickListener
-            val normPair = resolveNorms(model)
-
-            val normText = if (normPair != null) {
-                val unitSuffix = model.unit.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
-                "Норма: ${
-                    String.format(Locale.US, "%.1f", normPair.first)
-                }–${
-                    String.format(Locale.US, "%.1f", normPair.second)
-                }$unitSuffix"
-            } else {
-                "Норма неизвестна"
-            }
 
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("${model.abbreviation} • ${model.displayName}")
-                .setMessage("${model.description}\n\n$normText")
+                .setMessage(
+                    "${model.description}\n\n${
+                        presentationMapper.buildNormText(
+                            model = model,
+                            roomNorms = currentRoomNorms
+                        )
+                    }"
+                )
                 .setPositiveButton("Понятно", null)
                 .show()
         }
@@ -306,12 +272,21 @@ class HomeFragment : Fragment() {
             return
         }
 
+        if (MetricRegistry.isRoomBacked(param)) {
+            return
+        }
+
         renderLegacyMetric(param)
     }
 
     private fun renderLegacyMetric(param: String) {
-        val timestamps = datesData[param]?.toList() ?: emptyList()
-        val values = chartsData[param]?.map { it.second } ?: emptyList()
+        if (!dataRepo.isLegacyOnlyParam(param)) {
+            return
+        }
+
+        val timestamps = datesData[param]?.toList().orEmpty()
+        val values = chartsData[param]?.map { it.second }.orEmpty()
+
         renderChartAndList(param, timestamps, values)
     }
 
@@ -328,7 +303,10 @@ class HomeFragment : Fragment() {
                         unit = model.unit
                     )
                 } catch (_: Throwable) {
-                    resolveNorms(model)
+                    presentationMapper.resolveNorms(
+                        model = model,
+                        roomNorms = null
+                    )
                 }
 
                 app.appContainer.observeMeasurementsByMetricCodeUseCase(metricCode)
@@ -355,15 +333,18 @@ class HomeFragment : Fragment() {
 
         val sortedTimestamps = pairedData.map { it.first }
         val model = getMetricModel(param)
-        val paramColor = resolveMetricColor(model)
-        val norms = resolveNorms(model)
+        val paramColor = presentationMapper.resolveMetricColor(model)
+        val norms = presentationMapper.resolveNorms(
+            model = model,
+            roomNorms = currentRoomNorms
+        )
 
         setupYAxis(sortedEntries.map { it.y }, norms)
         setupXAxis(sortedEntries.size, sortedTimestamps)
 
         val mainDataSet = createMainDataSet(
             entries = sortedEntries,
-            label = resolveChartLabel(param, model),
+            label = presentationMapper.resolveChartLabel(param, model),
             paramColor = paramColor
         )
         val fillDataSet = createNormFillDataSet(sortedEntries.size, norms)
@@ -514,23 +495,13 @@ class HomeFragment : Fragment() {
         pairedData: List<Pair<Long, Float>>
     ) {
         val model = getMetricModel(param)
-        val norms = resolveNorms(model)
-        val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
-        val items = pairedData
-            .sortedByDescending { it.first }
-            .map { (timestamp, value) ->
-                val isOutOfNorm = norms?.let { value < it.first || value > it.second } ?: false
-
-                MeasurementItem(
-                    timestamp = timestamp,
-                    date = dateFormat.format(Date(timestamp)),
-                    param = resolveMeasurementParamLabel(param, model),
-                    value = String.format(Locale.US, "%.1f", value),
-                    unit = model?.unit ?: "",
-                    isOutOfNorm = isOutOfNorm
-                )
-            }
+        val items = presentationMapper.mapMeasurementItems(
+            param = param,
+            model = model,
+            roomNorms = currentRoomNorms,
+            pairedData = pairedData
+        )
 
         measurementAdapter.updateItems(items)
     }
@@ -540,43 +511,11 @@ class HomeFragment : Fragment() {
         val metricCode = model?.roomMetricCode ?: MetricRegistry.getMetricCodeOrNull(param)
 
         if (model?.source == MetricSource.ROOM && metricCode != null) {
-            val app = requireActivity().application as App
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                try {
-                    app.appContainer.deleteMeasurementByMetricCodeForDayUseCase(
-                        metricCode = metricCode,
-                        measuredAt = timestamp
-                    )
-                    updateChart(param)
-                } catch (_: Throwable) {
-                }
-            }
+            deleteRoomMeasurement(param, metricCode, timestamp)
             return
         }
 
-        val paramDates = datesData[param] ?: return
-        val paramValues = chartsData[param] ?: return
-
-        val index = paramDates.indexOfFirst { it == timestamp }
-        if (index == -1) return
-
-        paramDates.removeAt(index)
-        if (index < paramValues.size) {
-            paramValues.removeAt(index)
-        }
-
-        if (paramDates.isEmpty()) {
-            datesData.remove(param)
-        }
-        if (paramValues.isEmpty()) {
-            chartsData.remove(param)
-        }
-
-        dataRepo.saveDatesData(datesData)
-        dataRepo.saveChartsData(chartsData)
-
-        updateChart(param)
+        deleteLegacyMeasurement(param, timestamp)
     }
 
     private fun applySafeArea(root: View) {
@@ -640,4 +579,50 @@ class HomeFragment : Fragment() {
 
         renderChartAndList(param, timestamps, values)
     }
+
+    private fun isLegacyMetric(param: String): Boolean {
+        val model = getMetricModel(param)
+        return model?.source == MetricSource.LEGACY && !MetricRegistry.isRoomBacked(param)
+    }
+
+    private fun refreshCurrentMetric(forceReloadLegacyCache: Boolean = false) {
+        val model = currentMetricModel ?: metricModels.firstOrNull() ?: return
+
+        if (forceReloadLegacyCache || model.source == MetricSource.LEGACY) {
+            loadData()
+        }
+
+        updateChart(model.key)
+    }
+
+    private fun deleteLegacyMeasurement(param: String, timestamp: Long) {
+        val deleted = runCatching {
+            dataRepo.deleteLegacyMeasurementByTimestamp(
+                param = param,
+                timestamp = timestamp
+            )
+        }.getOrDefault(false)
+
+        if (deleted) {
+            loadData()
+            updateChart(param)
+        }
+    }
+
+    private fun deleteRoomMeasurement(param: String, metricCode: String, timestamp: Long) {
+        val app = requireActivity().application as App
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                app.appContainer.deleteMeasurementByMetricCodeForDayUseCase(
+                    metricCode = metricCode,
+                    measuredAt = timestamp
+                )
+                updateChart(param)
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private val presentationMapper = HomeMetricPresentationMapper()
 }

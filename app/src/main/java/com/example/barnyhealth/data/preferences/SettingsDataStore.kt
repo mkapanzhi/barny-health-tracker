@@ -1,7 +1,6 @@
 package com.example.barnyhealth.data.preferences
 
 import android.content.Context
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
@@ -21,6 +20,7 @@ class SettingsDataStore(
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val ACTIVE_PET_ID = longPreferencesKey("active_pet_id")
         val LEGACY_IMPORT_DONE = booleanPreferencesKey("legacy_import_done")
+        val LEGACY_CLEANUP_DONE = booleanPreferencesKey("legacy_cleanup_done")
     }
 
     val onboardingCompletedFlow: Flow<Boolean> = context.dataStore.data
@@ -41,6 +41,12 @@ class SettingsDataStore(
         }
         .map { prefs -> prefs[Keys.LEGACY_IMPORT_DONE] ?: false }
 
+    val legacyCleanupDoneFlow: Flow<Boolean> = context.dataStore.data
+        .catch {
+            if (it is IOException) emit(emptyPreferences()) else throw it
+        }
+        .map { prefs -> prefs[Keys.LEGACY_CLEANUP_DONE] ?: false }
+
     suspend fun setOnboardingCompleted(value: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[Keys.ONBOARDING_COMPLETED] = value
@@ -60,6 +66,12 @@ class SettingsDataStore(
     suspend fun setLegacyImportDone(value: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[Keys.LEGACY_IMPORT_DONE] = value
+        }
+    }
+
+    suspend fun setLegacyCleanupDone(value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.LEGACY_CLEANUP_DONE] = value
         }
     }
 }

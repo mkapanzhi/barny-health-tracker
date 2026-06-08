@@ -24,15 +24,24 @@ class ImportLegacyMeasurementsUseCase(
             return
         }
 
-        legacyPoints.forEach { point ->
-            val roomConfig = MetricRegistry.getRoomMetricConfig(point.key) ?: return@forEach
+        val roomBackedPoints = legacyPoints.mapNotNull { point ->
+            val roomConfig = MetricRegistry.getRoomMetricConfig(point.key) ?: return@mapNotNull null
+            point to roomConfig
+        }
 
+        if (roomBackedPoints.isEmpty()) {
+            settingsDataStore.setLegacyImportDone(true)
+            return
+        }
+
+        roomBackedPoints.forEach { (point, roomConfig) ->
             measurementRepository.addOrReplaceMeasurementForDay(
                 petId = activePetId,
                 metricCode = roomConfig.metricCode,
                 value = point.value.toDouble(),
                 unit = roomConfig.unit,
                 measuredAt = point.timestamp,
+                note = null,
                 source = "legacy_import"
             )
         }

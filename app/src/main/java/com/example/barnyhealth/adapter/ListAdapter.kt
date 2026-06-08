@@ -8,11 +8,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class ListAdapter(
     private val norms: Map<String, Pair<Float, Float>>,
-    private val onDelete: (String, Int) -> Unit
+    private val onDelete: (ListItem) -> Unit
 ) : RecyclerView.Adapter<ListAdapter.ViewHolder>() {
 
     private val items = mutableListOf<ListItem>()
@@ -40,22 +41,15 @@ class ListAdapter(
         val sdf = SimpleDateFormat("dd.MM HH:mm", Locale.getDefault())
         holder.tvDate.text = sdf.format(Date(item.timestamp))
 
-        // Красный если за референсами
         val norm = norms[item.param] ?: Pair(0f, Float.MAX_VALUE)
         val isOutOfRange = item.value < norm.first || item.value > norm.second
         holder.tvValue.setTextColor(if (isOutOfRange) Color.RED else Color.BLACK)
         holder.tvValue.text = "${item.param}: %.2f".format(item.value)
 
         holder.btnDelete.setOnClickListener {
-            onDelete(item.param, position)
+            onDelete(item)
         }
     }
 
-
     override fun getItemCount() = items.size
-
-    fun removeAt(position: Int) {
-        items.removeAt(position)
-        notifyItemRemoved(position)
-    }
 }

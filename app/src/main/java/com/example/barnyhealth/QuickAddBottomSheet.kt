@@ -24,16 +24,12 @@ import kotlin.math.round
 
 class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
-    private lateinit var dataRepo: DataRepository
+
 
     private var selectedTimestamp: Long = System.currentTimeMillis()
     private var selectedDateText: String = ""
     private var currentMetricModel: MetricUiModel? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        dataRepo = DataRepository(requireContext())
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -136,25 +132,14 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
     }
 
     private suspend fun saveMeasurement(paramKey: String, value: Float) {
-        val model = currentMetricModel
         val app = requireActivity().application as App
 
-        if (model?.source == MetricSource.ROOM && model.roomMetricCode != null) {
-            app.appContainer.addMeasurementByMetricCodeUseCase(
-                metricCode = model.roomMetricCode,
-                value = value.toDouble(),
-                unit = model.unit,
-                measuredAt = selectedTimestamp,
-                note = null,
-                source = "quick_add"
-            )
-            return
-        }
-
-        saveLegacyMeasurement(
-            param = paramKey,
-            timestamp = selectedTimestamp,
-            value = value
+        app.appContainer.saveMetricMeasurementUseCase(
+            model = currentMetricModel,
+            fallbackParamKey = paramKey,
+            value = value,
+            measuredAt = selectedTimestamp,
+            source = "quick_add"
         )
     }
 
@@ -189,29 +174,6 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
     private fun formatDate(timestamp: Long): String {
         return SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestamp))
-    }
-
-    private fun saveLegacyMeasurement(param: String, timestamp: Long, value: Float) {
-        val chartsData = dataRepo.loadChartsData().toMutableMap()
-        val datesData = dataRepo.loadDatesData().toMutableMap()
-
-        val valuesList = chartsData.getOrPut(param) { mutableListOf() }
-        val datesList = datesData.getOrPut(param) { mutableListOf() }
-
-        val existingIndex = datesList.indexOfFirst { existingTimestamp ->
-            formatDate(existingTimestamp) == formatDate(timestamp)
-        }
-
-        if (existingIndex != -1) {
-            datesList[existingIndex] = timestamp
-            valuesList[existingIndex] = Pair(valuesList[existingIndex].first, value)
-        } else {
-            valuesList.add(Pair(valuesList.size.toFloat(), value))
-            datesList.add(timestamp)
-        }
-
-        dataRepo.saveChartsData(chartsData)
-        dataRepo.saveDatesData(datesData)
     }
 
     companion object {
