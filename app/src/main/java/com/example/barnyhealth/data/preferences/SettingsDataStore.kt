@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import androidx.datastore.preferences.core.stringPreferencesKey
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -21,6 +22,7 @@ class SettingsDataStore(
         val ACTIVE_PET_ID = longPreferencesKey("active_pet_id")
         val LEGACY_IMPORT_DONE = booleanPreferencesKey("legacy_import_done")
         val LEGACY_CLEANUP_DONE = booleanPreferencesKey("legacy_cleanup_done")
+        val SELECTED_HOME_METRIC_KEY = stringPreferencesKey("selected_home_metric_key")
     }
 
     val onboardingCompletedFlow: Flow<Boolean> = context.dataStore.data
@@ -46,6 +48,22 @@ class SettingsDataStore(
             if (it is IOException) emit(emptyPreferences()) else throw it
         }
         .map { prefs -> prefs[Keys.LEGACY_CLEANUP_DONE] ?: false }
+
+    val selectedHomeMetricKeyFlow: Flow<String?> = context.dataStore.data
+        .catch {
+            if (it is IOException) emit(emptyPreferences()) else throw it
+        }
+        .map { prefs -> prefs[Keys.SELECTED_HOME_METRIC_KEY] }
+
+    suspend fun setSelectedHomeMetricKey(value: String?) {
+        context.dataStore.edit { prefs ->
+            if (value == null) {
+                prefs.remove(Keys.SELECTED_HOME_METRIC_KEY)
+            } else {
+                prefs[Keys.SELECTED_HOME_METRIC_KEY] = value
+            }
+        }
+    }
 
     suspend fun setOnboardingCompleted(value: Boolean) {
         context.dataStore.edit { prefs ->

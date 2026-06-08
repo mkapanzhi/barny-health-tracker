@@ -62,6 +62,7 @@ class HomeFragment : Fragment() {
     private var metricModels: List<MetricUiModel> = emptyList()
     private var currentMetricModel: MetricUiModel? = null
     private var currentRoomNorms: Pair<Float, Float>? = null
+    private var selectedParamKey: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -73,6 +74,8 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        selectedParamKey = savedInstanceState?.getString(STATE_SELECTED_PARAM_KEY)
 
         dataRepo = DataRepository(requireContext())
 
@@ -88,6 +91,7 @@ class HomeFragment : Fragment() {
         loadMetricModelsAndSetupSpinner()
     }
 
+
     override fun onResume() {
         super.onResume()
         refreshCurrentMetric()
@@ -97,6 +101,15 @@ class HomeFragment : Fragment() {
         roomMetricJob?.cancel()
         super.onDestroyView()
     }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(
+            STATE_SELECTED_PARAM_KEY,
+            selectedParamKey ?: currentMetricModel?.key
+        )
+    }
+
 
     private fun initViews(root: View) {
         chart = root.findViewById(R.id.chartWbc)
@@ -143,6 +156,8 @@ class HomeFragment : Fragment() {
             val paramKey = bundle.getString(QuickAddBottomSheet.RESULT_PARAM)
                 ?: return@setFragmentResultListener
 
+            selectedParamKey = paramKey
+
             val selectedKey = currentMetricModel?.key
 
             if (selectedKey == paramKey) {
@@ -152,6 +167,7 @@ class HomeFragment : Fragment() {
 
             val index = metricModels.indexOfFirst { it.key == paramKey }
             if (index >= 0) {
+                currentMetricModel = metricModels[index]
                 spinnerParam.setSelection(index)
             }
         }
@@ -177,6 +193,29 @@ class HomeFragment : Fragment() {
             adapter.setDropDownViewResource(R.layout.item_spinner_param_dropdown)
             spinnerParam.adapter = adapter
 
+            if (metricModels.isEmpty()) {
+                currentMetricModel = null
+                renderChartAndList(
+                    param = "",
+                    timestamps = emptyList(),
+                    values = emptyList()
+                )
+                return@launch
+            }
+
+            val targetIndex = selectedParamKey
+                ?.let { key -> metricModels.indexOfFirst { it.key == key } }
+                ?.takeIf { it >= 0 }
+                ?: metricModels.indexOfFirst { it.key == currentMetricModel?.key }
+                    .takeIf { it >= 0 }
+                ?: 0
+
+            val targetModel = metricModels[targetIndex]
+            currentMetricModel = targetModel
+            selectedParamKey = targetModel.key
+
+            spinnerParam.setSelection(targetIndex, false)
+
             spinnerParam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(
                     parent: AdapterView<*>?,
@@ -188,26 +227,14 @@ class HomeFragment : Fragment() {
                     if (currentMetricModel?.key == model.key) return
 
                     currentMetricModel = model
+                    selectedParamKey = model.key
                     updateChart(model.key)
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
             }
 
-            val firstModel = metricModels.firstOrNull()
-            if (firstModel == null) {
-                currentMetricModel = null
-                renderChartAndList(
-                    param = "",
-                    timestamps = emptyList(),
-                    values = emptyList()
-                )
-                return@launch
-            }
-
-            currentMetricModel = firstModel
-            spinnerParam.setSelection(0, false)
-            refreshCurrentMetric(forceReloadLegacyCache = firstModel.source == MetricSource.LEGACY)
+            refreshCurrentMetric(forceReloadLegacyCache = targetModel.source == MetricSource.LEGACY)
         }
     }
 
@@ -622,6 +649,10 @@ class HomeFragment : Fragment() {
             } catch (_: Throwable) {
             }
         }
+    }
+
+    companion object {
+        private const val STATE_SELECTED_PARAM_KEY = "state_selected_param_key"
     }
 
     private val presentationMapper = HomeMetricPresentationMapper()

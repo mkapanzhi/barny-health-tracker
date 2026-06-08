@@ -27,8 +27,15 @@ class HomeMetricPresentationMapper {
         return model?.displayName ?: if (param.isNotBlank()) param else "Нет данных"
     }
 
+    private fun toCompactLabel(text: String): String {
+        return text.substringBefore(" (")
+            .substringBefore("(")
+            .trim()
+    }
+
     fun resolveMeasurementParamLabel(param: String, model: MetricUiModel?): String {
-        return model?.abbreviation ?: model?.displayName ?: param
+        val displayName = model?.displayName ?: param
+        return toCompactLabel(displayName)
     }
 
     fun mapMeasurementItems(
