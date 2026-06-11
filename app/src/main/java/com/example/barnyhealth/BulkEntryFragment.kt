@@ -138,7 +138,7 @@ class BulkEntryFragment : Fragment() {
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                    2.3f
+                    1.8f
                 ).apply {
                     marginEnd = dp(12)
                 }
@@ -157,6 +157,8 @@ class BulkEntryFragment : Fragment() {
             val tvFullName = TextView(requireContext()).apply {
                 text = if (fullName.isNotBlank()) "($fullName)" else ""
                 textSize = 14f
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
                 setTextColor(android.graphics.Color.parseColor("#666666"))
                 visibility = if (fullName.isNotBlank()) View.VISIBLE else View.GONE
             }
@@ -167,14 +169,14 @@ class BulkEntryFragment : Fragment() {
                     ?.let { " ($it)" }
                     .orEmpty()
 
-                hint = "Добавить$unitSuffix"
+                hint = "Добавить"
                 inputType = InputType.TYPE_CLASS_NUMBER or
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
                 setSingleLine()
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
+                    1.2f
                 )
             }
 
