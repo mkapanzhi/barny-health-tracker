@@ -269,6 +269,9 @@ class HomeFragment : Fragment() {
         chart.setTouchEnabled(true)
         chart.isDragEnabled = true
 
+        chart.isHighlightPerTapEnabled = false
+        chart.isHighlightPerDragEnabled = false
+
         chart.setScaleXEnabled(true)
         chart.setScaleYEnabled(false)
         chart.setPinchZoom(false)
@@ -417,6 +420,8 @@ class HomeFragment : Fragment() {
                 setDrawValues(false)
                 lineWidth = 2f
                 setDrawCircles(false)
+                isHighlightEnabled = false
+                setDrawHighlightIndicators(false)
             }
         }
 
@@ -431,6 +436,9 @@ class HomeFragment : Fragment() {
             valueTextColor = Color.BLACK
             mode = LineDataSet.Mode.CUBIC_BEZIER
             cubicIntensity = 0.20f
+
+            isHighlightEnabled = false
+            setDrawHighlightIndicators(false)
 
             valueFormatter = object : ValueFormatter() {
                 private val df = DecimalFormat("0.0", DecimalFormatSymbols(Locale.US))
@@ -504,7 +512,7 @@ class HomeFragment : Fragment() {
             Entry(maxX, norms.second)
         )
 
-        return LineDataSet(fillEntries, "").apply {
+        return LineDataSet(fillEntries, "").apply { // изменить цвет зеленой зоны
             setDrawFilled(true)
             fillColor = Color.rgb(220, 255, 220)
             fillAlpha = 150
