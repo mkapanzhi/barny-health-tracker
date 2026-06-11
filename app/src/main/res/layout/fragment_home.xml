@@ -75,7 +75,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-
                 <ImageView
                     android:id="@+id/ivDropdownArrow"
                     android:layout_width="24dp"
@@ -84,15 +83,14 @@
                     android:contentDescription="@null"
                     android:focusable="false"
                     android:src="@drawable/ic_arrow_drop_down"
-                    app:tint="#5E6472"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:tint="#5E6472" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </com.google.android.material.card.MaterialCardView>
-
 
         <ImageButton
             android:id="@+id/btnParamInfo"
@@ -102,17 +100,17 @@
             android:contentDescription="Информация о параметре"
             android:padding="8dp"
             android:src="@drawable/ic_info"
-            app:tint="#5E6472"
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="#5E6472" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardChart"
         android:layout_width="0dp"
-        android:layout_height="320dp"
+        android:layout_height="220dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
@@ -157,7 +155,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         android:clipToPadding="false"
-        android:paddingBottom="88dp"
+        android:paddingBottom="96dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -168,11 +166,13 @@
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:alpha="0.70"
         android:contentDescription="Добавить значение"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="#5EC6B3"
+        app:fabCustomSize="50dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:tint="@android:color/white" />

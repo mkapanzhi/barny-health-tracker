@@ -14,6 +14,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,7 +35,6 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
@@ -52,7 +52,6 @@ class HomeFragment : Fragment() {
     private lateinit var spinnerParam: Spinner
     private lateinit var btnParamInfo: ImageButton
     private lateinit var rvMeasurements: RecyclerView
-    private lateinit var fabAdd: FloatingActionButton
     private lateinit var measurementAdapter: MeasurementAdapter
     private lateinit var dataRepo: DataRepository
     private lateinit var cardSpinner: MaterialCardView
@@ -74,8 +73,6 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        selectedParamKey = savedInstanceState?.getString(STATE_SELECTED_PARAM_KEY)
 
         dataRepo = DataRepository(requireContext())
 
@@ -99,6 +96,12 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         roomMetricJob?.cancel()
+
+        requireActivity().findViewById<FloatingActionButton>(R.id.fabAdd)?.apply {
+            setOnClickListener(null)
+            visibility = View.GONE
+        }
+
         super.onDestroyView()
     }
 
@@ -117,7 +120,12 @@ class HomeFragment : Fragment() {
         spinnerParam = root.findViewById(R.id.spinnerParam)
         btnParamInfo = root.findViewById(R.id.btnParamInfo)
         rvMeasurements = root.findViewById(R.id.rvMeasurements)
-        fabAdd = root.findViewById(R.id.fabAdd)
+    }
+
+    private fun setupSpinnerTapArea() {
+        cardSpinner.setOnClickListener {
+            spinnerParam.performClick()
+        }
     }
 
     private fun setupRecycler() {
@@ -139,7 +147,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupFab() {
-        fabAdd.setOnClickListener {
+        val fab = requireActivity().findViewById<FloatingActionButton>(R.id.fabAdd)
+
+        fab.visibility = View.VISIBLE
+        fab.setOnClickListener {
             val model = currentMetricModel ?: return@setOnClickListener
 
             QuickAddBottomSheet
@@ -307,6 +318,10 @@ class HomeFragment : Fragment() {
         }
 
         renderLegacyMetric(param)
+    }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).toInt()
     }
 
     private fun renderLegacyMetric(param: String) {
@@ -572,6 +587,7 @@ class HomeFragment : Fragment() {
     private fun applySafeArea(root: View) {
         val main = root.findViewById<ConstraintLayout>(R.id.main)
         val fab = root.findViewById<FloatingActionButton>(R.id.fabAdd)
+        val list = root.findViewById<RecyclerView>(R.id.rvMeasurements)
 
         ViewCompat.setOnApplyWindowInsetsListener(main) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -581,26 +597,19 @@ class HomeFragment : Fragment() {
             val bottomInset = maxOf(systemBars.bottom, cutout.bottom)
 
             view.updatePadding(
-                top = topInset,
-                bottom = 0
+                top = topInset
             )
 
             fab.updateLayoutParams<ConstraintLayout.LayoutParams> {
-                bottomMargin = bottomInset + dp(20)
-                marginEnd = dp(20)
+                marginEnd = dp(16)
+                bottomMargin = dp(16)
             }
 
+            list.updatePadding(
+                bottom = bottomInset + dp(88)
+            )
+
             insets
-        }
-    }
-
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
-    }
-
-    private fun setupSpinnerTapArea() {
-        cardSpinner.setOnClickListener {
-            spinnerParam.performClick()
         }
     }
 
