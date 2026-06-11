@@ -448,52 +448,68 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupYAxis(yValues: List<Float>, norms: Pair<Float, Float>?) {
-        val greenZoneMin = norms?.first ?: yValues.minOrNull() ?: 0f
-        val greenZoneMax = norms?.second ?: yValues.maxOrNull() ?: 10f
+        val hasData = yValues.isNotEmpty()
 
-        val maxPoint = yValues.maxOrNull() ?: greenZoneMax
-        val minPoint = yValues.minOrNull() ?: greenZoneMin
+        val axisMin: Float
+        val axisMax: Float
 
-        val targetMax = maxOf(maxPoint, greenZoneMax)
-        val targetMin = minOf(minPoint, greenZoneMin)
+        if (!hasData) {
+            val normMin = norms?.first ?: 0f
+            val normMax = norms?.second ?: 10f
 
-        var delta = targetMax - targetMin
-        if (delta == 0f) delta = 1f
+            var normDelta = normMax - normMin
+            if (normDelta <= 0f) {
+                normDelta = maxOf(normMax * 0.5f, 1f)
+            }
 
-        val padding = delta * 0.25f
-        val rawYMin = targetMin - padding
-        val rawYMax = targetMax + padding
+            val bottomPadding = normDelta * 0.6f
+            val topPadding = normDelta * 0.6f
 
-        val yMin: Float
-        val yMax: Float
-
-        if (rawYMin < 0f) {
-            val cutAmount = 0f - rawYMin
-            yMin = 0f
-            yMax = rawYMax - cutAmount
+            axisMin = maxOf(0f, normMin - bottomPadding)
+            axisMax = normMax + topPadding
         } else {
-            yMin = rawYMin
-            yMax = rawYMax
+            val dataMin = yValues.minOrNull() ?: 0f
+            val dataMax = yValues.maxOrNull() ?: 0f
+
+            val normMin = norms?.first ?: dataMin
+            val normMax = norms?.second ?: dataMax
+
+            val targetMin = minOf(dataMin, normMin)
+            val targetMax = maxOf(dataMax, normMax)
+
+            var delta = targetMax - targetMin
+            if (delta <= 0f) {
+                delta = maxOf(targetMax * 0.5f, 1f)
+            }
+
+            val bottomPadding = delta * 0.20f
+            val topPadding = delta * 0.35f
+
+            axisMin = maxOf(0f, targetMin - bottomPadding)
+            axisMax = targetMax + topPadding
         }
 
-        chart.axisLeft.axisMinimum = yMin
-        chart.axisLeft.axisMaximum = yMax
+        chart.axisLeft.axisMinimum = axisMin
+        chart.axisLeft.axisMaximum = axisMax
     }
 
     private fun setupNormLines(norms: Pair<Float, Float>?) {
         chart.axisLeft.removeAllLimitLines()
         norms ?: return
 
+        val normLineColor = Color.parseColor("#C8E6C9")
+
         LimitLine(norms.first).apply {
-            lineWidth = 2f
-            lineColor = Color.GREEN
+            lineWidth = 1.5f
+            lineColor = normLineColor
+            disableDashedLine()
             label = ""
         }.also { chart.axisLeft.addLimitLine(it) }
 
         LimitLine(norms.second).apply {
-            lineWidth = 2f
-            lineColor = Color.GREEN
-            enableDashedLine(10f, 5f, 0f)
+            lineWidth = 1.5f
+            lineColor = normLineColor
+            disableDashedLine()
             label = ""
         }.also { chart.axisLeft.addLimitLine(it) }
     }
