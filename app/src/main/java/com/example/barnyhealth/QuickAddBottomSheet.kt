@@ -158,6 +158,13 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun showDatePicker(tvQuickDate: TextView) {
+        val tag = "quick_add_date_picker"
+        val fm = parentFragmentManager
+
+        if (fm.findFragmentByTag(tag) != null) {
+            return
+        }
+
         val picker = MaterialDatePicker.Builder.datePicker()
             .setTitleText("Выберите дату")
             .setSelection(selectedTimestamp)
@@ -169,7 +176,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
             tvQuickDate.text = selectedDateText
         }
 
-        picker.show(parentFragmentManager, "quick_add_date_picker")
+        picker.show(fm, tag)
     }
 
     private fun formatDate(timestamp: Long): String {

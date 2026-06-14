@@ -1,6 +1,5 @@
 package com.example.barnyhealth
 
-import android.app.DatePickerDialog
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -16,7 +15,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
-import com.example.barnyhealth.domain.model.MetricSource
 import com.example.barnyhealth.domain.model.MetricUiModel
 import kotlinx.coroutines.launch
 import java.math.RoundingMode
@@ -26,8 +24,13 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import android.util.Log
 
 class BulkEntryFragment : Fragment() {
+
+    companion object {
+        private const val TAG = "BulkEntry"
+    }
 
     private lateinit var btnDatePicker: Button
     private lateinit var radioGroupMode: RadioGroup
@@ -37,8 +40,6 @@ class BulkEntryFragment : Fragment() {
     private lateinit var containerFields: LinearLayout
     private lateinit var btnSave: Button
     private lateinit var btnBack: Button
-
-
 
     private var selectedDate = Date()
 
@@ -52,11 +53,13 @@ class BulkEntryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        Log.e(TAG, "onCreateView ${hashCode()}")
         return inflater.inflate(R.layout.activity_bulk_entry, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        Log.e(TAG, "onViewCreated ${hashCode()}")
 
         btnDatePicker = view.findViewById(R.id.btnDatePickerBulk)
         radioGroupMode = view.findViewById(R.id.radioGroupMode)
@@ -67,7 +70,6 @@ class BulkEntryFragment : Fragment() {
         btnSave = view.findViewById(R.id.btnSaveBulk)
         btnBack = view.findViewById(R.id.btnBackBulk)
 
-
         selectedDate = normalizeDate(selectedDate)
 
         setupDatePicker()
@@ -75,14 +77,19 @@ class BulkEntryFragment : Fragment() {
         setupSaveButton()
 
         viewLifecycleOwner.lifecycleScope.launch {
+            Log.e(TAG, "loading metricModels ${hashCode()}")
+
             val app = requireActivity().application as App
 
             metricModels = try {
                 app.appContainer.getHomeMetricsUseCase()
                     .sortedBy { it.displayName.lowercase(Locale.getDefault()) }
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                Log.e(TAG, "metric load error", t)
                 emptyList()
             }
+
+            Log.e(TAG, "metricModels loaded count=${metricModels.size} ${hashCode()}")
 
             buildFields()
             rbAll.isChecked = true
@@ -90,6 +97,7 @@ class BulkEntryFragment : Fragment() {
         }
 
         btnBack.setOnClickListener {
+            Log.e(TAG, "back click ${hashCode()}")
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }
     }
@@ -97,22 +105,39 @@ class BulkEntryFragment : Fragment() {
     private fun setupDatePicker() {
         val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         btnDatePicker.text = "📅 ${sdf.format(selectedDate)}"
+        Log.e(TAG, "setupDatePicker ${hashCode()}")
 
         btnDatePicker.setOnClickListener {
-            val calendar = Calendar.getInstance().apply { time = selectedDate }
+            Log.e(TAG, "date click ${hashCode()}")
 
-            DatePickerDialog(
-                requireContext(),
-                { _, year, month, day ->
-                    calendar.set(year, month, day, 0, 0, 0)
-                    calendar.set(Calendar.MILLISECOND, 0)
-                    selectedDate = normalizeDate(calendar.time)
-                    btnDatePicker.text = "📅 ${sdf.format(selectedDate)}"
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
+            val tag = "bulk_date_picker"
+            val fm = childFragmentManager
+
+            val existing = fm.findFragmentByTag(tag)
+            Log.e(TAG, "existing dialog = $existing")
+
+            if (existing != null) {
+                Log.e(TAG, "dialog already exists ${hashCode()}")
+                return@setOnClickListener
+            }
+
+            Log.e(TAG, "before show ${hashCode()}")
+
+            DatePickerFragment(
+                initialTimeMillis = selectedDate.time
+            ) { year, month, day ->
+                Log.e(TAG, "date selected y=$year m=$month d=$day ${hashCode()}")
+
+                val calendar = Calendar.getInstance().apply {
+                    set(year, month, day, 0, 0, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                selectedDate = normalizeDate(calendar.time)
+                btnDatePicker.text = "📅 ${sdf.format(selectedDate)}"
+            }.show(fm, tag)
+
+            Log.e(TAG, "after show ${hashCode()}")
         }
     }
 
@@ -164,10 +189,6 @@ class BulkEntryFragment : Fragment() {
             }
 
             val etValue = EditText(requireContext()).apply {
-                val unitSuffix = model.unit
-                    .takeIf { it.isNotBlank() }
-                    ?.let { " ($it)" }
-                    .orEmpty()
 
                 hint = "Добавить"
                 inputType = InputType.TYPE_CLASS_NUMBER or
@@ -301,4 +322,5 @@ class BulkEntryFragment : Fragment() {
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
     }
+
 }
