@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">BarnyHealthTracker</string>
     <string name="title_activity_history_list">HistoryListActivity</string>
+    <string name="error_pet_name_required">Please enter pet name</string>
+    <string name="navigation_home">Главная</string>
+    <string name="navigation_bulk">Групп. добавл.</string>
+    <string name="navigation_test">Тест</string>
+    <string name="clear_photo">Clear photo</string>
+    <string name="pet_photo">Pet photo</string>
 </resources>
