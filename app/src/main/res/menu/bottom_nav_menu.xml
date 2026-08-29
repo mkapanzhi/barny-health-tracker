@@ -3,15 +3,15 @@
     <item
         android:id="@+id/homeFragment"
         android:icon="@android:drawable/ic_menu_view"
-        android:title="Главная" />
+        android:title="@string/navigation_home" />
 
     <item
         android:id="@+id/bulkEntryFragment"
         android:icon="@android:drawable/ic_input_add"
-        android:title="Групп. добавл." />
+        android:title="@string/navigation_bulk" />
 
     <item
         android:id="@+id/testFragment"
         android:icon="@android:drawable/ic_menu_info_details"
-        android:title="Тест" />
+        android:title="@string/navigation_test" />
 </menu>

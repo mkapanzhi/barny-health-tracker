@@ -1,5 +1,7 @@
 package com.example.barnyhealth
 
+import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -12,8 +14,23 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
+    private val onboardingPrefs: SharedPreferences by lazy {
+        getSharedPreferences("onboarding_prefs", MODE_PRIVATE)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Check onboarding status
+        val isOnboardingCompleted = onboardingPrefs.getBoolean("completed", false)
+        android.util.Log.d("MainActivity", "Onboarding completed = $isOnboardingCompleted")
+
+        if (!isOnboardingCompleted) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
+        }
+
         setContentView(R.layout.activity_main)
 
         setupNavigation()

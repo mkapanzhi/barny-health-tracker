@@ -1,6 +1,7 @@
 package com.example.barnyhealth
 
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,19 +9,21 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Spinner
+import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.barnyhealth.app.App
 import com.example.barnyhealth.data.local.db.entity.MeasurementEntity
+import com.example.barnyhealth.data.preferences.SettingsDataStore
 import com.example.barnyhealth.domain.model.MetricSource
 import com.example.barnyhealth.domain.model.MetricUiModel
 import com.github.mikephil.charting.charts.LineChart
@@ -35,8 +38,10 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
@@ -49,12 +54,20 @@ class HomeFragment : Fragment() {
     private val datesData = mutableMapOf<String, MutableList<Long>>()
 
     private lateinit var chart: LineChart
+    private lateinit var fabAdd: FloatingActionButton
     private lateinit var spinnerParam: Spinner
     private lateinit var btnParamInfo: ImageButton
     private lateinit var rvMeasurements: RecyclerView
     private lateinit var measurementAdapter: MeasurementAdapter
     private lateinit var dataRepo: DataRepository
     private lateinit var cardSpinner: MaterialCardView
+
+    private var petNameText: TextView? = null
+    private var petPhotoImage: ImageView? = null
+    private var petPhotoPlaceholder: TextView? = null
+    private var petProfileContainer: View? = null
+    private var currentPetName: String? = null
+    private var currentPetPhotoPath: String? = null
 
     private var roomMetricJob: Job? = null
     private var spinnerItems: List<String> = emptyList()
@@ -86,12 +99,13 @@ class HomeFragment : Fragment() {
         setupQuickAddResult()
         setupSpinnerTapArea()
         loadMetricModelsAndSetupSpinner()
+        loadPetProfile()
     }
-
 
     override fun onResume() {
         super.onResume()
         refreshCurrentMetric()
+        updatePetProfileUI(currentPetName, currentPetPhotoPath)
     }
 
     override fun onDestroyView() {
@@ -113,13 +127,18 @@ class HomeFragment : Fragment() {
         )
     }
 
-
     private fun initViews(root: View) {
+        petProfileContainer = root.findViewById(R.id.pet_profile_container)
+        petNameText = root.findViewById(R.id.pet_name_text)
+        petPhotoImage = root.findViewById(R.id.pet_photo_image)
+        petPhotoPlaceholder = root.findViewById(R.id.pet_photo_placeholder)
+
         chart = root.findViewById(R.id.chartWbc)
         cardSpinner = root.findViewById(R.id.cardSpinner)
         spinnerParam = root.findViewById(R.id.spinnerParam)
         btnParamInfo = root.findViewById(R.id.btnParamInfo)
         rvMeasurements = root.findViewById(R.id.rvMeasurements)
+        fabAdd = root.findViewById(R.id.fabAdd)
     }
 
     private fun setupSpinnerTapArea() {
@@ -252,7 +271,6 @@ class HomeFragment : Fragment() {
     private fun getMetricModel(param: String): MetricUiModel? {
         return metricModels.firstOrNull { it.key == param }
     }
-
 
     private fun setupInfoButton() {
         btnParamInfo.setOnClickListener {
@@ -543,7 +561,7 @@ class HomeFragment : Fragment() {
             Entry(maxX, norms.second)
         )
 
-        return LineDataSet(fillEntries, "").apply { // изменить цвет зеленой зоны
+        return LineDataSet(fillEntries, "").apply {
             setDrawFilled(true)
             fillColor = Color.rgb(220, 255, 220)
             fillAlpha = 150
@@ -582,6 +600,50 @@ class HomeFragment : Fragment() {
         }
 
         deleteLegacyMeasurement(param, timestamp)
+    }
+
+    private fun updatePetProfileUI(name: String?, photoPath: String?) {
+        petNameText?.text = (name ?: "").ifEmpty { "My pet" }
+        petProfileContainer?.visibility = View.VISIBLE
+
+        val photoImage = petPhotoImage
+        val placeholder = petPhotoPlaceholder
+
+        if (photoPath.isNullOrBlank()) {
+            photoImage?.visibility = View.GONE
+            placeholder?.visibility = View.VISIBLE
+        } else {
+            try {
+                val file = File(photoPath)
+                if (file.exists()) {
+                    photoImage?.setImageURI(Uri.fromFile(file))
+                    photoImage?.visibility = View.VISIBLE
+                    placeholder?.visibility = View.GONE
+                } else {
+                    photoImage?.visibility = View.GONE
+                    placeholder?.visibility = View.VISIBLE
+                }
+            } catch (e: Exception) {
+                photoImage?.visibility = View.GONE
+                placeholder?.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun loadPetProfile() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            settingsDataStore.petNameFlow.collect { name ->
+                currentPetName = name
+                updatePetProfileUI(currentPetName, currentPetPhotoPath)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            settingsDataStore.petPhotoUriFlow.collect { photoPath ->
+                currentPetPhotoPath = photoPath
+                updatePetProfileUI(currentPetName, currentPetPhotoPath)
+            }
+        }
     }
 
     private fun applySafeArea(root: View) {
@@ -689,4 +751,7 @@ class HomeFragment : Fragment() {
     }
 
     private val presentationMapper = HomeMetricPresentationMapper()
+    private val settingsDataStore by lazy {
+        SettingsDataStore(requireContext())
+    }
 }
