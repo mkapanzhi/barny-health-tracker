@@ -2,6 +2,7 @@ package com.example.barnyhealth
 
 import android.view.LayoutInflater
 import android.view.View
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.PopupMenu
@@ -51,17 +52,27 @@ class MeasurementAdapter(
     }
 
     private fun showPopupMenu(view: View, item: MeasurementItem) {
-        val popup = PopupMenu(view.context, view)
+        val popup = PopupMenu(
+            view.context,
+            view,
+            Gravity.END,
+            0,
+            R.style.ThemeOverlay_BarnyHealthTracker_PopupMenu
+        )
+
         popup.menuInflater.inflate(R.menu.item_actions, popup.menu)
+
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_delete -> {
                     onDelete(item)
                     true
                 }
+
                 else -> false
             }
         }
+
         popup.show()
     }
 

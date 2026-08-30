@@ -4,6 +4,8 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -88,7 +90,7 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         dataRepo = DataRepository(requireContext())
-
+        petPhotoPlaceholder = view.findViewById(R.id.pet_photo_placeholder)
         initViews(view)
         setupRecycler()
         loadData()
@@ -101,6 +103,8 @@ class HomeFragment : Fragment() {
         loadMetricModelsAndSetupSpinner()
         loadPetProfile()
     }
+
+
 
     override fun onResume() {
         super.onResume()
@@ -640,8 +644,31 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             settingsDataStore.petPhotoUriFlow.collect { photoPath ->
-                currentPetPhotoPath = photoPath
-                updatePetProfileUI(currentPetName, currentPetPhotoPath)
+                val hasPhoto = !photoPath.isNullOrBlank()
+
+                petPhotoImage?.visibility = if (hasPhoto) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+
+                petPhotoPlaceholder?.visibility = if (hasPhoto) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
+
+                if (hasPhoto) {
+                    runCatching {
+                        petPhotoImage?.setImageURI(Uri.parse(photoPath))
+                    }.onFailure {
+                        petPhotoImage?.setImageDrawable(null)
+                        petPhotoImage?.visibility = View.GONE
+                        petPhotoPlaceholder?.visibility = View.VISIBLE
+                    }
+                } else {
+                    petPhotoImage?.setImageDrawable(null)
+                }
             }
         }
     }
@@ -679,14 +706,27 @@ class HomeFragment : Fragment() {
         val model = currentMetricModel ?: return
         val param = model.key
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle("Удалить запись?")
             .setMessage("${item.date} — ${item.value}")
             .setNegativeButton("Отмена", null)
             .setPositiveButton("Удалить") { _, _ ->
                 deleteMeasurement(param, item.timestamp)
             }
-            .show()
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).apply {
+                setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.md_theme_error
+                    )
+                )
+            }
+        }
+
+        dialog.show()
     }
 
     private fun renderRoomMeasurements(param: String, items: List<MeasurementEntity>) {
