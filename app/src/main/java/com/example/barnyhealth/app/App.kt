@@ -3,7 +3,6 @@ package com.example.barnyhealth.app
 import android.app.Application
 import com.example.barnyhealth.data.local.db.DatabaseProvider
 import com.example.barnyhealth.data.local.db.DatabaseSeeder
-import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -15,8 +14,6 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
-        DynamicColors.applyToActivitiesIfAvailable(this)
 
         appContainer = AppContainer(this)
 

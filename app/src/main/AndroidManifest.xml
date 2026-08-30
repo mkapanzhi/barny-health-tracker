@@ -15,6 +15,10 @@
 
         <activity
             android:name=".OnboardingActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,11 +27,8 @@
         </activity>
 
         <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".HistoryListActivity"
+            android:exported="false"
             android:label="История"
             android:parentActivityName=".MainActivity" />
 

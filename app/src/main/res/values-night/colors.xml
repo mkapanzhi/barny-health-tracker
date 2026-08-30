@@ -1,26 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="md_theme_primary">#72D8C4</color>
+
+    <!-- Primary -->
+    <color name="md_theme_primary">#00C4A8</color>
     <color name="md_theme_onPrimary">#00382F</color>
     <color name="md_theme_primaryContainer">#005145</color>
     <color name="md_theme_onPrimaryContainer">#8EF4DF</color>
 
-    <color name="md_theme_secondary">#B2CCC5</color>
-    <color name="md_theme_onSecondary">#1D3530</color>
+    <!-- Secondary -->
+    <color name="md_theme_secondary">#2E8A7A</color>
+    <color name="md_theme_onSecondary">#05201B</color>
     <color name="md_theme_secondaryContainer">#344B46</color>
     <color name="md_theme_onSecondaryContainer">#CEE8E1</color>
 
-    <color name="md_theme_tertiary">#ADCAE4</color>
+    <!-- Tertiary -->
+    <color name="md_theme_tertiary">#8EB3D6</color>
     <color name="md_theme_onTertiary">#153349</color>
     <color name="md_theme_tertiaryContainer">#2D4A61</color>
     <color name="md_theme_onTertiaryContainer">#CCE5FF</color>
 
+    <!-- Surfaces -->
     <color name="md_theme_surface">#101413</color>
     <color name="md_theme_onSurface">#E0E3E0</color>
     <color name="md_theme_surfaceVariant">#3F4946</color>
     <color name="md_theme_onSurfaceVariant">#BFC9C5</color>
     <color name="md_theme_outline">#89938F</color>
 
+    <!-- Error -->
     <color name="md_theme_error">#FFB4AB</color>
     <color name="md_theme_onError">#690005</color>
+    <color name="pet_photo_fab_background">#00A992</color>
+
 </resources>
