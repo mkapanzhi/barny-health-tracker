@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -145,6 +146,9 @@ class BulkEntryFragment : Fragment() {
         containerFields.removeAllViews()
         inputMap.clear()
         rowMap.clear()
+        val onSurfaceColor = resolveColor(R.color.md_theme_onSurface)
+        val onSurfaceVariantColor = resolveColor(R.color.md_theme_onSurfaceVariant)
+        val outlineColor = resolveColor(R.color.md_theme_outline)
 
         metricModels.forEach { model ->
             val row = LinearLayout(requireContext()).apply {
@@ -175,7 +179,7 @@ class BulkEntryFragment : Fragment() {
             val tvShortName = TextView(requireContext()).apply {
                 text = shortName
                 textSize = 18f
-                setTextColor(android.graphics.Color.parseColor("#2C2C2C"))
+                setTextColor(onSurfaceColor)
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
 
@@ -184,16 +188,20 @@ class BulkEntryFragment : Fragment() {
                 textSize = 14f
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
-                setTextColor(android.graphics.Color.parseColor("#666666"))
+                setTextColor(onSurfaceVariantColor)
                 visibility = if (fullName.isNotBlank()) View.VISIBLE else View.GONE
             }
 
             val etValue = EditText(requireContext()).apply {
-
-                hint = "Добавить"
+                hint = getString(R.string.add)
                 inputType = InputType.TYPE_CLASS_NUMBER or
                         InputType.TYPE_NUMBER_FLAG_DECIMAL
                 setSingleLine()
+
+                setTextColor(onSurfaceColor)
+                setHintTextColor(onSurfaceVariantColor)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(outlineColor)
+
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -321,6 +329,9 @@ class BulkEntryFragment : Fragment() {
 
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
+    }
+    private fun resolveColor(colorRes: Int): Int {
+        return ContextCompat.getColor(requireContext(), colorRes)
     }
 
 }

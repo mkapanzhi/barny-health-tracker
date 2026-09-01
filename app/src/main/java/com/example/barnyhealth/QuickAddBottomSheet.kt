@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.google.android.material.card.MaterialCardView
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -47,6 +48,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
         val tvQuickParamShort = view.findViewById<TextView>(R.id.tvQuickParamShort)
         val tvQuickParamFull = view.findViewById<TextView>(R.id.tvQuickParamFull)
         val tvQuickDate = view.findViewById<TextView>(R.id.tvQuickDate)
+        val cardQuickDate = view.findViewById<MaterialCardView>(R.id.cardQuickDate)
         val tvQuickNorm = view.findViewById<TextView>(R.id.tvQuickNorm)
         val etQuickValue = view.findViewById<EditText>(R.id.etQuickValue)
         val tilQuickValue = view.findViewById<TextInputLayout>(R.id.tilQuickValue)
@@ -54,6 +56,11 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
         val btnQuickSave = view.findViewById<MaterialButton>(R.id.btnQuickSave)
 
         etQuickValue.filters = arrayOf(DecimalDigitsInputFilter(1))
+        etQuickValue.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                tilQuickValue.error = null
+            }
+        }
 
         selectedDateText = formatDate(selectedTimestamp)
         tvQuickDate.text = selectedDateText
@@ -75,7 +82,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
             tvQuickNorm.text = formatNormText(model)
         }
 
-        tvQuickDate.setOnClickListener {
+        cardQuickDate.setOnClickListener {
             showDatePicker(tvQuickDate)
         }
 

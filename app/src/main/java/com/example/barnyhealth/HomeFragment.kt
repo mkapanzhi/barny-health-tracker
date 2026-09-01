@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
+import androidx.core.graphics.ColorUtils
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import android.view.View
@@ -221,10 +222,12 @@ class HomeFragment : Fragment() {
 
             val adapter = ArrayAdapter(
                 requireContext(),
-                R.layout.item_spinner_param,
+                R.layout.item_spinner_selected,
                 spinnerItems
-            )
-            adapter.setDropDownViewResource(R.layout.item_spinner_param_dropdown)
+            ).apply {
+                setDropDownViewResource(R.layout.item_spinner_dropdown)
+            }
+
             spinnerParam.adapter = adapter
 
             if (metricModels.isEmpty()) {
@@ -296,12 +299,20 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupChart() {
+        val onSurfaceColor = resolveColor(R.color.md_theme_onSurface)
+        val onSurfaceVariantColor = resolveColor(R.color.md_theme_onSurfaceVariant)
+        val outlineColor = resolveColor(R.color.md_theme_outline)
+
+        chart.setBackgroundColor(Color.TRANSPARENT)
+        chart.setDrawGridBackground(false)
+        chart.setNoDataText("Нет данных")
+        chart.setNoDataTextColor(onSurfaceVariantColor)
+
         chart.description.isEnabled = false
         chart.legend.isEnabled = false
 
         chart.setTouchEnabled(true)
         chart.isDragEnabled = true
-
         chart.isHighlightPerTapEnabled = false
         chart.isHighlightPerDragEnabled = false
 
@@ -310,15 +321,26 @@ class HomeFragment : Fragment() {
         chart.setPinchZoom(false)
         chart.isDoubleTapToZoomEnabled = false
 
-        chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
-        chart.xAxis.setCenterAxisLabels(false)
-        chart.xAxis.granularity = 1f
-        chart.xAxis.gridColor = Color.TRANSPARENT
-        chart.xAxis.yOffset = 0f
+        chart.xAxis.apply {
+            position = XAxis.XAxisPosition.BOTTOM
+            setCenterAxisLabels(false)
+            granularity = 1f
+            gridColor = Color.TRANSPARENT
+            axisLineColor = outlineColor
+            textColor = onSurfaceVariantColor
+            textSize = 11f
+            yOffset = 8f
+        }
 
         chart.axisRight.isEnabled = false
-        chart.axisLeft.gridColor = Color.parseColor("#D9E6E1")
-        chart.axisLeft.spaceBottom = 20f
+
+        chart.axisLeft.apply {
+            gridColor = ColorUtils.setAlphaComponent(outlineColor, 72)
+            axisLineColor = outlineColor
+            textColor = onSurfaceVariantColor
+            textSize = 11f
+            spaceBottom = 20f
+        }
 
         chart.setExtraOffsets(0f, 0f, 0f, 20f)
     }
@@ -344,6 +366,10 @@ class HomeFragment : Fragment() {
 
     private fun dp(value: Int): Int {
         return (value * resources.displayMetrics.density).toInt()
+    }
+
+    private fun resolveColor(colorRes: Int): Int {
+        return ContextCompat.getColor(requireContext(), colorRes)
     }
 
     private fun renderLegacyMetric(param: String) {
@@ -470,7 +496,7 @@ class HomeFragment : Fragment() {
             setDrawCircleHole(false)
             setDrawValues(true)
             valueTextSize = 12f
-            valueTextColor = Color.BLACK
+            valueTextColor = resolveColor(R.color.md_theme_onSurface)
             mode = LineDataSet.Mode.CUBIC_BEZIER
             cubicIntensity = 0.20f
 
@@ -479,7 +505,10 @@ class HomeFragment : Fragment() {
 
             valueFormatter = object : ValueFormatter() {
                 private val df = DecimalFormat("0.0", DecimalFormatSymbols(Locale.US))
-                override fun getFormattedValue(value: Float): String = df.format(value)
+
+                override fun getFormattedValue(value: Float): String {
+                    return df.format(value)
+                }
             }
         }
     }
@@ -534,7 +563,9 @@ class HomeFragment : Fragment() {
         chart.axisLeft.removeAllLimitLines()
         norms ?: return
 
-        val normLineColor = Color.parseColor("#C8E6C9")
+        val primaryColor = resolveColor(R.color.md_theme_primary)
+
+        val normLineColor = ColorUtils.setAlphaComponent(primaryColor, 150)
 
         LimitLine(norms.first).apply {
             lineWidth = 1.5f
@@ -567,8 +598,9 @@ class HomeFragment : Fragment() {
 
         return LineDataSet(fillEntries, "").apply {
             setDrawFilled(true)
-            fillColor = Color.rgb(220, 255, 220)
-            fillAlpha = 150
+            fillColor = resolveColor(R.color.md_theme_primary)
+            fillAlpha = 36
+            fillAlpha = 36
             color = Color.TRANSPARENT
             lineWidth = 0f
             setDrawCircles(false)
@@ -644,31 +676,8 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             settingsDataStore.petPhotoUriFlow.collect { photoPath ->
-                val hasPhoto = !photoPath.isNullOrBlank()
-
-                petPhotoImage?.visibility = if (hasPhoto) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
-                }
-
-                petPhotoPlaceholder?.visibility = if (hasPhoto) {
-                    View.GONE
-                } else {
-                    View.VISIBLE
-                }
-
-                if (hasPhoto) {
-                    runCatching {
-                        petPhotoImage?.setImageURI(Uri.parse(photoPath))
-                    }.onFailure {
-                        petPhotoImage?.setImageDrawable(null)
-                        petPhotoImage?.visibility = View.GONE
-                        petPhotoPlaceholder?.visibility = View.VISIBLE
-                    }
-                } else {
-                    petPhotoImage?.setImageDrawable(null)
-                }
+                currentPetPhotoPath = photoPath
+                updatePetProfileUI(currentPetName, currentPetPhotoPath)
             }
         }
     }

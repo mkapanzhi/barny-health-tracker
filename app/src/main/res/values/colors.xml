@@ -22,6 +22,10 @@
     <color name="md_theme_tertiaryContainer">#CCE5FF</color>
     <color name="md_theme_onTertiaryContainer">#001E30</color>
 
+    <!-- Background -->
+    <color name="md_theme_background">#F8FAF7</color>
+    <color name="md_theme_onBackground">#191C1B</color>
+
     <!-- Surfaces -->
     <color name="md_theme_surface">#F8FAF7</color>
     <color name="md_theme_onSurface">#191C1B</color>
@@ -32,6 +36,15 @@
     <!-- Error -->
     <color name="md_theme_error">#BA1A1A</color>
     <color name="md_theme_onError">#FFFFFFFF</color>
+
+    <!-- App-specific -->
     <color name="pet_photo_fab_background">#148F7D</color>
+
+    <!-- Measurement status -->
+    <color name="measurement_value_normal">#007A4D</color>
+    <color name="measurement_value_alert">#BA1A1A</color>
+
+    <color name="photo_circle_background">#FFFFFF</color>
+    <color name="info_button_background">#FFFFFF</color>
 
 </resources>

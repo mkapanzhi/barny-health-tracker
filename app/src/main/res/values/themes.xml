@@ -21,6 +21,10 @@
         <item name="colorTertiaryContainer">@color/md_theme_tertiaryContainer</item>
         <item name="colorOnTertiaryContainer">@color/md_theme_onTertiaryContainer</item>
 
+        <!-- Background -->
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        <item name="colorOnBackground">@color/md_theme_onBackground</item>
+
         <!-- Surfaces -->
         <item name="colorSurface">@color/md_theme_surface</item>
         <item name="colorOnSurface">@color/md_theme_onSurface</item>
@@ -32,7 +36,7 @@
         <item name="colorError">@color/md_theme_error</item>
         <item name="colorOnError">@color/md_theme_onError</item>
 
-        <!-- System bars: light icons are not needed on the light surface -->
+        <!-- System bars -->
         <item name="android:statusBarColor">?attr/colorSurface</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
         <item name="android:windowLightStatusBar">true</item>
@@ -45,16 +49,17 @@
     </style>
 
     <style name="Theme.BarnyHealthTracker" parent="Base.Theme.BarnyHealthTracker" />
-    <style name="ThemeOverlay.BarnyHealthTracker.PopupMenu"
-        parent="ThemeOverlay.Material3.Light">
 
-        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
-        <item name="android:dropDownListViewStyle">@style/Widget.BarnyHealthTracker.PopupMenu.List</item>
+    <style name="ThemeOverlay.BarnyHealthTracker.PopupMenu" parent="ThemeOverlay.Material3">
+
+        <item name="android:popupBackground">?attr/colorSurface</item>
+        <item name="android:dropDownListViewStyle">
+            @style/Widget.BarnyHealthTracker.PopupMenu.List
+        </item>
 
     </style>
 
-    <style name="Widget.BarnyHealthTracker.PopupMenu.List"
-        parent="Widget.AppCompat.ListView.DropDown">
+    <style name="Widget.BarnyHealthTracker.PopupMenu.List" parent="Widget.AppCompat.ListView.DropDown">
 
         <item name="android:divider">@null</item>
         <item name="android:choiceMode">none</item>
