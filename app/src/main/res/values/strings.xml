@@ -4,8 +4,25 @@
     <string name="error_pet_name_required">Please enter pet name</string>
     <string name="navigation_home">Главная</string>
     <string name="navigation_bulk">Групп. добавл.</string>
-    <string name="navigation_test">Тест</string>
+    <string name="navigation_test">Лекарства</string>
     <string name="clear_photo">Clear photo</string>
     <string name="pet_photo">Pet photo</string>
     <string name="select_pet_photo">Select pet photo</string>
+    <string name="recently_added">Недавно добавленные</string>
+    <string name="parameter_info">Информация о параметре</string>
+    <string name="add_value">Добавить значение</string>
+    <string name="item_actions">Действия с записью</string>
+    <string name="select_date">Выбрать дату</string>
+    <string name="value">Значение</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="back">← Назад</string>
+    <string name="all">Все</string>
+    <string name="favorites">Избранное</string>
+    <string name="no_favorite_parameters">Нет избранных параметров</string>
+    <string name="add">Добавить</string>
+    <string name="onboarding_title">Добро пожаловать в Barny Health</string>
+    <string name="onboarding_subtitle">Настройте профиль питомца</string>
+    <string name="pet_name_hint">Имя питомца</string>
+    <string name="continue_action">Продолжить</string>
 </resources>

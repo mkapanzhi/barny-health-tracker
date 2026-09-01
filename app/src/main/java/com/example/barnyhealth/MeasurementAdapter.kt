@@ -39,12 +39,15 @@ class MeasurementAdapter(
             "${item.value} ${item.unit}"
         }
 
-        val valueColor = if (item.isOutOfNorm) {
-            ContextCompat.getColor(holder.itemView.context, android.R.color.holo_red_dark)
+        val valueColorRes = if (item.isOutOfNorm) {
+            R.color.measurement_value_alert
         } else {
-            ContextCompat.getColor(holder.itemView.context, android.R.color.holo_green_dark)
+            R.color.measurement_value_normal
         }
-        holder.tvValue.setTextColor(valueColor)
+
+        holder.tvValue.setTextColor(
+            ContextCompat.getColor(holder.itemView.context, valueColorRes)
+        )
 
         holder.btnMenu.setOnClickListener { view ->
             showPopupMenu(view, item)
@@ -52,13 +55,7 @@ class MeasurementAdapter(
     }
 
     private fun showPopupMenu(view: View, item: MeasurementItem) {
-        val popup = PopupMenu(
-            view.context,
-            view,
-            Gravity.END,
-            0,
-            R.style.ThemeOverlay_BarnyHealthTracker_PopupMenu
-        )
+        val popup = PopupMenu(view.context, view, Gravity.END)
 
         popup.menuInflater.inflate(R.menu.item_actions, popup.menu)
 
