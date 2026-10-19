@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BarnyHealthTracker</string>
+    <string name="title_activity_history_list">HistoryListActivity</string>
+    <string name="error_pet_name_required">Введите имя питомца</string>
+    <string name="navigation_home">Главная</string>
+    <string name="navigation_bulk">Групп. добавл.</string>
+    <string name="navigation_test">Лекарства</string>
+    <string name="clear_photo">Удалить фото</string>
+    <string name="pet_photo">Фото питомца</string>
+    <string name="select_pet_photo">Выбрать фото питомца</string>
+    <string name="recently_added">Недавно добавленные</string>
+    <string name="parameter_info">Информация о параметре</string>
+    <string name="add_value">Добавить значение</string>
+    <string name="item_actions">Действия с записью</string>
+    <string name="select_date">Выбрать дату</string>
+    <string name="value">Значение</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="back">← Назад</string>
+    <string name="all">Все</string>
+    <string name="favorites">Избранное</string>
+    <string name="no_favorite_parameters">Нет избранных параметров</string>
+    <string name="add">Добавить</string>
+    <string name="onboarding_title">Добро пожаловать в Barny Health</string>
+    <string name="onboarding_subtitle">Настройте профиль питомца</string>
+    <string name="pet_name_hint">Имя питомца</string>
+    <string name="continue_action">Продолжить</string>
+    <string name="got_it">Понятно</string>
+    <string name="no_data">Нет данных</string>
+    <string name="my_pet">Мой питомец</string>
+    <string name="delete_entry_question">Удалить запись?</string>
+    <string name="delete">Удалить</string>
+</resources>
