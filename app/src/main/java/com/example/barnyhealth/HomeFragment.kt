@@ -91,7 +91,7 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         dataRepo = DataRepository(requireContext())
-        petPhotoPlaceholder = view.findViewById(R.id.pet_photo_placeholder)
+
         initViews(view)
         setupRecycler()
         loadData()
@@ -104,8 +104,6 @@ class HomeFragment : Fragment() {
         loadMetricModelsAndSetupSpinner()
         loadPetProfile()
     }
-
-
 
     override fun onResume() {
         super.onResume()
@@ -293,7 +291,7 @@ class HomeFragment : Fragment() {
                         )
                     }"
                 )
-                .setPositiveButton("Понятно", null)
+                .setPositiveButton(R.string.got_it, null)
                 .show()
         }
     }
@@ -305,7 +303,7 @@ class HomeFragment : Fragment() {
 
         chart.setBackgroundColor(Color.TRANSPARENT)
         chart.setDrawGridBackground(false)
-        chart.setNoDataText("Нет данных")
+        chart.setNoDataText(getString(R.string.no_data))
         chart.setNoDataTextColor(onSurfaceVariantColor)
 
         chart.description.isEnabled = false
@@ -478,7 +476,7 @@ class HomeFragment : Fragment() {
         paramColor: Int
     ): LineDataSet {
         if (entries.isEmpty()) {
-            return LineDataSet(emptyList(), "Нет данных").apply {
+            return LineDataSet(emptyList(), getString(R.string.no_data)).apply {
                 color = paramColor
                 setDrawValues(false)
                 lineWidth = 2f
@@ -600,7 +598,6 @@ class HomeFragment : Fragment() {
             setDrawFilled(true)
             fillColor = resolveColor(R.color.md_theme_primary)
             fillAlpha = 36
-            fillAlpha = 36
             color = Color.TRANSPARENT
             lineWidth = 0f
             setDrawCircles(false)
@@ -639,7 +636,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updatePetProfileUI(name: String?, photoPath: String?) {
-        petNameText?.text = (name ?: "").ifEmpty { "My pet" }
+        petNameText?.text = (name ?: "").ifEmpty { getString(R.string.my_pet) }
         petProfileContainer?.visibility = View.VISIBLE
 
         val photoImage = petPhotoImage
@@ -716,10 +713,10 @@ class HomeFragment : Fragment() {
         val param = model.key
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Удалить запись?")
+            .setTitle(R.string.delete_entry_question)
             .setMessage("${item.date} — ${item.value}")
-            .setNegativeButton("Отмена", null)
-            .setPositiveButton("Удалить") { _, _ ->
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete) { _, _ ->
                 deleteMeasurement(param, item.timestamp)
             }
             .create()
