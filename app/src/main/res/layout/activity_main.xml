@@ -40,7 +40,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:contentDescription="@string/add_value"
+        android:contentDescription="Добавить измерение"
         android:src="@android:drawable/ic_input_add"
         android:visibility="gone"
         app:backgroundTint="?attr/colorPrimary"
