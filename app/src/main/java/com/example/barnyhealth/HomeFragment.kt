@@ -709,8 +709,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun confirmDelete(item: MeasurementItem) {
-        val model = currentMetricModel ?: return
-        val param = model.key
+        val param = item.param
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_entry_question)
