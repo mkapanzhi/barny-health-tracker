@@ -11,12 +11,12 @@ import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
-import com.example.barnyhealth.domain.model.MetricSource
 import com.example.barnyhealth.domain.model.MetricUiModel
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -71,7 +71,9 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
             currentMetricModel = try {
                 app.appContainer.getHomeMetricsUseCase()
                     .firstOrNull { it.key == paramKey }
-            } catch (_: Throwable) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
                 null
             }
 
@@ -110,6 +112,15 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
+                    if (currentMetricModel == null) {
+                        Toast.makeText(
+                            requireContext(),
+                            "Не удалось определить параметр. Повторите попытку",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@launch
+                    }
+
                     saveMeasurement(
                         paramKey = paramKey,
                         value = roundedValue
@@ -127,10 +138,12 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
                     ).show()
 
                     dismiss()
-                } catch (t: Throwable) {
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
                     Toast.makeText(
                         requireContext(),
-                        "Ошибка сохранения: ${t.message}",
+                        "Не удалось сохранить значение. Попробуйте ещё раз",
                         Toast.LENGTH_LONG
                     ).show()
                 }

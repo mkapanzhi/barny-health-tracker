@@ -15,25 +15,27 @@ class SaveMetricMeasurementUseCase(
         measuredAt: Long,
         source: String
     ) {
-        when (model?.source) {
+        val metricModel = model
+            ?: error("Metric model is missing for param: $fallbackParamKey")
+
+        when (metricModel.source) {
             MetricSource.ROOM -> {
-                val metricCode = model.roomMetricCode
-                    ?: error("Room metric code is missing for ${model.key}")
+                val metricCode = metricModel.roomMetricCode?.takeIf { it.isNotBlank() }
+                    ?: error("Room metric code is missing or blank for ${metricModel.key}")
 
                 addMeasurementByMetricCodeUseCase(
                     metricCode = metricCode,
                     value = value.toDouble(),
-                    unit = model.unit,
+                    unit = metricModel.unit,
                     measuredAt = measuredAt,
                     note = null,
                     source = source
                 )
             }
 
-            MetricSource.LEGACY,
-            null -> {
+            MetricSource.LEGACY -> {
                 dataRepository.upsertLegacyMeasurementForDay(
-                    param = fallbackParamKey,
+                    param = metricModel.key,
                     timestamp = measuredAt,
                     value = value
                 )
