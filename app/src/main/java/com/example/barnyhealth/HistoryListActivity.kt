@@ -1,6 +1,7 @@
 package com.example.barnyhealth
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.Toast
@@ -10,6 +11,8 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class HistoryListActivity : AppCompatActivity() {
+
+    private val TAG = "HistoryListActivity"
 
     private lateinit var adapter: ListAdapter
     private lateinit var dataRepo: DataRepository
@@ -56,12 +59,23 @@ class HistoryListActivity : AppCompatActivity() {
         val datesData = dataRepo.loadLegacyOnlyDatesData()
 
         val allItems = mutableListOf<ListItem>()
+        var hasInconsistentData = false
 
         selectedParams.forEach { param ->
             if (!dataRepo.isLegacyOnlyParam(param)) return@forEach
 
             val points = chartsData[param].orEmpty()
             val timestamps = datesData[param].orEmpty()
+
+            if (points.size != timestamps.size) {
+                hasInconsistentData = true
+                Log.e(
+                    TAG,
+                    "Inconsistent legacy data for param=$param: " +
+                            "values=${points.size}, dates=${timestamps.size}"
+                )
+                return@forEach
+            }
 
             val paired = points.zip(timestamps) { point, timestamp ->
                 ListItem(param, point.second, timestamp)
@@ -72,6 +86,15 @@ class HistoryListActivity : AppCompatActivity() {
 
         val sortedItems = allItems.sortedByDescending { it.timestamp }
         adapter.updateItems(sortedItems)
+
+        if (hasInconsistentData) {
+            Toast.makeText(
+                this,
+                "Обнаружены неполные данные. Часть записей скрыта.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
         return sortedItems
     }
 
