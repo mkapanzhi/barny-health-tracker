@@ -17,6 +17,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
 import com.example.barnyhealth.domain.model.MetricUiModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.math.RoundingMode
 import java.text.DecimalFormat
@@ -85,8 +86,10 @@ class BulkEntryFragment : Fragment() {
             metricModels = try {
                 app.appContainer.getHomeMetricsUseCase()
                     .sortedBy { it.displayName.lowercase(Locale.getDefault()) }
-            } catch (t: Throwable) {
-                Log.e(TAG, "metric load error", t)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "metric load error", e)
                 emptyList()
             }
 
@@ -270,40 +273,62 @@ class BulkEntryFragment : Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 val app = requireActivity().application as App
                 var savedCount = 0
+                var failedCount = 0
 
                 inputMap.forEach { (param, editText) ->
                     val valueText = editText.text.toString().trim()
                     if (valueText.isEmpty()) return@forEach
 
-                    val rawValue = valueText.toFloatOrNull() ?: return@forEach
-                    val value = df.format(rawValue).toFloat()
+                    try {
+                        val rawValue = valueText.toFloatOrNull()
+                        if (rawValue == null) {
+                            failedCount++
+                            return@forEach
+                        }
+                        val value = df.format(rawValue).toFloat()
+                        val model = metricModels.firstOrNull { it.key == param }
 
-                    val model = metricModels.firstOrNull { it.key == param }
+                        app.appContainer.saveMetricMeasurementUseCase(
+                            model = model,
+                            fallbackParamKey = param,
+                            value = value,
+                            measuredAt = normalizedTimestamp,
+                            source = "bulk_entry"
+                        )
 
-                    app.appContainer.saveMetricMeasurementUseCase(
-                        model = model,
-                        fallbackParamKey = param,
-                        value = value,
-                        measuredAt = normalizedTimestamp,
-                        source = "bulk_entry"
-                    )
-
-                    savedCount++
+                        savedCount++
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        failedCount++
+                    }
                 }
 
-                if (savedCount > 0) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Сохранено параметров: $savedCount",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    requireActivity().onBackPressedDispatcher.onBackPressed()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Нет заполненных значений для сохранения",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                when {
+                    savedCount > 0 && failedCount == 0 -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "Сохранено параметров: $savedCount",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                    }
+
+                    failedCount > 0 -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "Сохранено: $savedCount. Не сохранено: $failedCount",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
+                    else -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "Нет заполненных значений для сохранения",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }
