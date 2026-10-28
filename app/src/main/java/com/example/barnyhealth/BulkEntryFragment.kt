@@ -308,7 +308,7 @@ class BulkEntryFragment : Fragment() {
                     savedCount > 0 && failedCount == 0 -> {
                         Toast.makeText(
                             requireContext(),
-                            "Сохранено параметров: $savedCount. Не сохранено: $failedCount",
+                            "Сохранено параметров: $savedCount",
                             Toast.LENGTH_LONG
                         ).show()
                         requireActivity().onBackPressedDispatcher.onBackPressed()
