@@ -12,6 +12,7 @@ import androidx.core.os.bundleOf
 import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
 import com.example.barnyhealth.domain.model.MetricUiModel
+import com.example.barnyhealth.util.DecimalInputParser
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -100,7 +101,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val parsedValue = rawValue.replace(",", ".").toFloatOrNull()
+            val parsedValue = DecimalInputParser.parse(rawValue)
             if (parsedValue == null) {
                 tilQuickValue.error = "Введите число"
                 return@setOnClickListener

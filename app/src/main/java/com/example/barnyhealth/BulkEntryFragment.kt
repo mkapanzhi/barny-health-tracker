@@ -17,6 +17,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
 import com.example.barnyhealth.domain.model.MetricUiModel
+import com.example.barnyhealth.util.DecimalInputParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.math.RoundingMode
@@ -270,24 +271,56 @@ class BulkEntryFragment : Fragment() {
 
             val normalizedTimestamp = normalizeDate(selectedDate).time
 
+            val invalidParams = mutableListOf<String>()
+            val validEntries = mutableListOf<Pair<String, Float>>()
+
+            inputMap.forEach { (param, editText) ->
+                val valueText = editText.text.toString().trim()
+
+                if (valueText.isEmpty()) {
+                    editText.error = null
+                    return@forEach
+                }
+
+                val parsedValue = DecimalInputParser.parse(valueText)
+
+                if (parsedValue == null) {
+                    invalidParams.add(param)
+                    editText.error = "Введите корректное число"
+                    return@forEach
+                }
+
+                editText.error = null
+                validEntries.add(param to df.format(parsedValue).toFloat())
+            }
+
+            if (invalidParams.isNotEmpty()) {
+                Toast.makeText(
+                    requireContext(),
+                    "Исправьте некорректные значения: ${invalidParams.size}",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@setOnClickListener
+            }
+
+            if (validEntries.isEmpty()) {
+                Toast.makeText(
+                    requireContext(),
+                    "Нет заполненных значений для сохранения",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+
             viewLifecycleOwner.lifecycleScope.launch {
                 val app = requireActivity().application as App
                 var savedCount = 0
                 var failedCount = 0
 
-                inputMap.forEach { (param, editText) ->
-                    val valueText = editText.text.toString().trim()
-                    if (valueText.isEmpty()) return@forEach
+                validEntries.forEach { (param, value) ->
+                    val model = metricModels.firstOrNull { it.key == param }
 
                     try {
-                        val rawValue = valueText.toFloatOrNull()
-                        if (rawValue == null) {
-                            failedCount++
-                            return@forEach
-                        }
-                        val value = df.format(rawValue).toFloat()
-                        val model = metricModels.firstOrNull { it.key == param }
-
                         app.appContainer.saveMetricMeasurementUseCase(
                             model = model,
                             fallbackParamKey = param,
@@ -295,7 +328,6 @@ class BulkEntryFragment : Fragment() {
                             measuredAt = normalizedTimestamp,
                             source = "bulk_entry"
                         )
-
                         savedCount++
                     } catch (e: CancellationException) {
                         throw e
@@ -319,14 +351,6 @@ class BulkEntryFragment : Fragment() {
                             requireContext(),
                             "Сохранено: $savedCount. Не сохранено: $failedCount",
                             Toast.LENGTH_LONG
-                        ).show()
-                    }
-
-                    else -> {
-                        Toast.makeText(
-                            requireContext(),
-                            "Нет заполненных значений для сохранения",
-                            Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
