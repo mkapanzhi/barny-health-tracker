@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.barnyhealth.app.App
 import com.example.barnyhealth.domain.model.MetricUiModel
 import com.example.barnyhealth.util.DecimalInputParser
+import com.example.barnyhealth.util.QuickAddDateNormalizer
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -28,7 +29,8 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
 
 
-    private var selectedTimestamp: Long = System.currentTimeMillis()
+    private var selectedTimestamp: Long =
+        QuickAddDateNormalizer.toLocalStartOfDay(System.currentTimeMillis())
     private var selectedDateText: String = ""
     private var currentMetricModel: MetricUiModel? = null
 
@@ -188,12 +190,15 @@ class QuickAddBottomSheet : BottomSheetDialogFragment() {
 
         val picker = MaterialDatePicker.Builder.datePicker()
             .setTitleText("Выберите дату")
-            .setSelection(selectedTimestamp)
+            .setSelection(
+                QuickAddDateNormalizer.toPickerSelection(selectedTimestamp)
+            )
             .build()
 
         picker.addOnPositiveButtonClickListener { selection ->
-            selectedTimestamp = selection
-            selectedDateText = formatDate(selection)
+            selectedTimestamp =
+                QuickAddDateNormalizer.fromPickerSelection(selection)
+            selectedDateText = formatDate(selectedTimestamp)
             tvQuickDate.text = selectedDateText
         }
 
