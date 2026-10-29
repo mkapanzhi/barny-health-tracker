@@ -1,6 +1,7 @@
 package com.example.barnyhealth.app
 
 import android.app.Application
+import android.util.Log
 import com.example.barnyhealth.data.local.db.DatabaseProvider
 import com.example.barnyhealth.data.local.db.DatabaseSeeder
 import kotlinx.coroutines.CoroutineScope
@@ -24,9 +25,15 @@ class App : Application() {
                 DatabaseSeeder(db).seed()
                 appContainer.ensureDefaultPetUseCase()
                 appContainer.importLegacyMeasurementsUseCase()
-                appContainer.cleanupMigratedLegacyMeasurementsUseCase()
-            }.onFailure {
-                it.printStackTrace()
+
+                // Legacy cleanup is intentionally disabled.
+                // The current legacy import is not atomic and cannot guarantee
+                // that every Room-backed measurement was migrated before cleanup.
+                // Re-enable only after introducing a transactional migration
+                // with successful-import verification.
+                // appContainer.cleanupMigratedLegacyMeasurementsUseCase()
+            }.onFailure { error ->
+                Log.e("AppStartup", "Startup initialization failed", error)
             }
         }
     }
