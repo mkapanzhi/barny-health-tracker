@@ -3,10 +3,8 @@ package com.example.barnyhealth
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
-import androidx.core.graphics.ColorUtils
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -15,7 +13,11 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -42,6 +44,7 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
@@ -53,6 +56,7 @@ import java.util.Locale
 
 class HomeFragment : Fragment() {
 
+    private val TAG = "HomeFragment"
     private val chartsData = mutableMapOf<String, MutableList<Pair<Float, Float>>>()
     private val datesData = mutableMapOf<String, MutableList<Long>>()
 
@@ -393,7 +397,10 @@ class HomeFragment : Fragment() {
                         metricCode = metricCode,
                         unit = model.unit
                     )
-                } catch (_: Throwable) {
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load reference range for metric=$param", e)
                     presentationMapper.resolveNorms(
                         model = model,
                         roomNorms = null
@@ -404,9 +411,21 @@ class HomeFragment : Fragment() {
                     .collect { measurements ->
                         renderRoomMeasurements(param, measurements)
                     }
-            } catch (_: Throwable) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load measurements for metric=$param", e)
+                showMeasurementLoadError()
             }
         }
+    }
+
+    private fun showMeasurementLoadError() {
+        Toast.makeText(
+            requireContext(),
+            "Не удалось загрузить измерения. Попробуйте ещё раз",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun renderChartAndList(
@@ -687,19 +706,16 @@ class HomeFragment : Fragment() {
         ViewCompat.setOnApplyWindowInsetsListener(main) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
-
             val topInset = maxOf(systemBars.top, cutout.top)
             val bottomInset = maxOf(systemBars.bottom, cutout.bottom)
 
             view.updatePadding(
                 top = topInset
             )
-
             fab.updateLayoutParams<ConstraintLayout.LayoutParams> {
                 marginEnd = dp(16)
                 bottomMargin = dp(16)
             }
-
             list.updatePadding(
                 bottom = bottomInset + dp(88)
             )
@@ -786,7 +802,15 @@ class HomeFragment : Fragment() {
                     measuredAt = timestamp
                 )
                 updateChart(param)
-            } catch (_: Throwable) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete measurement for metric=$param", e)
+                Toast.makeText(
+                    requireContext(),
+                    "Не удалось удалить запись. Попробуйте ещё раз",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
