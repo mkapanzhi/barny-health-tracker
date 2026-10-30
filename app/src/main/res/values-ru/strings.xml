@@ -31,4 +31,5 @@
     <string name="delete_entry_question">Удалить запись?</string>
     <string name="delete">Удалить</string>
     <string name="error_metric_list_load">Не удалось загрузить список показателей. Попробуйте ещё раз</string>
+    <string name="error_measurement_delete">Не удалось удалить запись. Попробуйте ещё раз</string>
 </resources>

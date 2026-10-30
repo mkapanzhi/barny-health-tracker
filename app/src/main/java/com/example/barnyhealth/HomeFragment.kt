@@ -787,17 +787,35 @@ class HomeFragment : Fragment() {
     }
 
     private fun deleteLegacyMeasurement(param: String, timestamp: Long) {
-        val deleted = runCatching {
+        val deleted = try {
             dataRepo.deleteLegacyMeasurementByTimestamp(
                 param = param,
                 timestamp = timestamp
             )
-        }.getOrDefault(false)
-
-        if (deleted) {
-            loadData()
-            updateChart(param)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete legacy measurement for metric=$param", e)
+            showMeasurementDeleteError()
+            return
         }
+
+        if (!deleted) {
+            Log.w(TAG, "Legacy measurement was not deleted for metric=$param")
+            showMeasurementDeleteError()
+            return
+        }
+
+        loadData()
+        updateChart(param)
+    }
+
+    private fun showMeasurementDeleteError() {
+        Toast.makeText(
+            requireContext(),
+            R.string.error_measurement_delete,
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun deleteRoomMeasurement(param: String, metricCode: String, timestamp: Long) {
@@ -814,11 +832,7 @@ class HomeFragment : Fragment() {
                 throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to delete measurement for metric=$param", e)
-                Toast.makeText(
-                    requireContext(),
-                    "Не удалось удалить запись. Попробуйте ещё раз",
-                    Toast.LENGTH_LONG
-                ).show()
+                showMeasurementDeleteError()
             }
         }
     }
