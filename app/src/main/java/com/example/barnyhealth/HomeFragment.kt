@@ -216,8 +216,16 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             metricModels = try {
                 app.appContainer.getHomeMetricsUseCase()
-            } catch (_: Throwable) {
-                emptyList()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load metric list", e)
+                Toast.makeText(
+                    requireContext(),
+                    R.string.error_metric_list_load,
+                    Toast.LENGTH_LONG
+                ).show()
+                return@launch
             }
 
             spinnerItems = metricModels.map { it.displayName }
