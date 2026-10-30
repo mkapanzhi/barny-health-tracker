@@ -5,5 +5,4 @@
     <fragment android:id="@+id/homeFragment" android:name="com.example.barnyhealth.HomeFragment" android:label="Главная" />
     <fragment android:id="@+id/bulkEntryFragment" android:name="com.example.barnyhealth.BulkEntryFragment" android:label="Добавить" />
     <fragment android:id="@+id/eventsFragment" android:name="com.example.barnyhealth.events.EventsFragment" android:label="@string/events_title" />
-    <fragment android:id="@+id/testFragment" android:name="com.example.barnyhealth.TestFragment" android:label="Тест" />
 </navigation>

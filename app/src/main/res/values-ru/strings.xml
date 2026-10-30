@@ -5,7 +5,6 @@
     <string name="error_pet_name_required">Введите имя питомца</string>
     <string name="navigation_home">Главная</string>
     <string name="navigation_bulk">Групп. добавл.</string>
-    <string name="navigation_test">Клиники</string>
     <string name="clear_photo">Удалить фото</string>
     <string name="pet_photo">Фото питомца</string>
     <string name="select_pet_photo">Выбрать фото питомца</string>
@@ -31,4 +30,6 @@
     <string name="my_pet">Мой питомец</string>
     <string name="delete_entry_question">Удалить запись?</string>
     <string name="delete">Удалить</string>
+    <string name="error_metric_list_load">Не удалось загрузить список показателей. Попробуйте ещё раз</string>
+    <string name="error_measurement_delete">Не удалось удалить запись. Попробуйте ещё раз</string>
 </resources>

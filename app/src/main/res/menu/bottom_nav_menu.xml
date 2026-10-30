@@ -3,5 +3,4 @@
     <item android:id="@+id/homeFragment" android:icon="@android:drawable/ic_menu_view" android:title="@string/navigation_home" />
     <item android:id="@+id/bulkEntryFragment" android:icon="@android:drawable/ic_input_add" android:title="@string/navigation_bulk" />
     <item android:id="@+id/eventsFragment" android:icon="@android:drawable/ic_menu_my_calendar" android:title="@string/events_title" />
-    <item android:id="@+id/testFragment" android:icon="@android:drawable/ic_menu_info_details" android:title="@string/navigation_test" />
 </menu>
