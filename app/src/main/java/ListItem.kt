@@ -1,4 +1,4 @@
-package com.example.barnyhealth
+package com.barny.healthtracker
 
 data class ListItem(
     val param: String,

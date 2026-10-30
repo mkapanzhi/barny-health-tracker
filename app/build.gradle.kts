@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.barnyhealth"
+    namespace = "com.barny.healthtracker"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.barnyhealth"
+        applicationId = "com.barny.healthtracker"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
