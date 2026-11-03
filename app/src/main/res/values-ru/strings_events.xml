@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="events_title">События</string>
+    <string name="events_add">Добавить событие</string>
+    <string name="events_edit">Изменить</string>
+    <string name="events_delete">Удалить</string>
+    <string name="events_delete_question">Удалить событие?</string>
+    <string name="events_cancel">Отмена</string>
+    <string name="events_save">Сохранить</string>
+    <string name="events_date">Выбрать дату</string>
+    <string name="events_text">Событие</string>
+    <string name="events_required">Введите событие</string>
+    <string name="events_previous">Предыдущий месяц</string>
+    <string name="events_next">Следующий месяц</string>
+    <string name="events_empty">На эту дату событий нет</string>
+    <string name="events_legend">• число — количество событий; рамка — сегодня</string>
+    <string name="events_weekdays">Пн|Вт|Ср|Чт|Пт|Сб|Вс</string>
+    <string name="events_count">Событий: %1$d</string>
+    <string name="events_loading">Загрузка…</string>
+    <string name="events_save_failed">Не удалось сохранить событие. Повторите попытку.</string>
+    <string name="events_load_failed">Не удалось загрузить события. Откройте вкладку повторно.</string>
+    <string name="events_delete_failed">Не удалось удалить событие</string>
+    <string name="events_retry">Повторить</string>
+</resources>
