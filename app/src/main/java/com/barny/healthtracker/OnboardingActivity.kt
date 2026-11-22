@@ -46,7 +46,7 @@ class OnboardingActivity : AppCompatActivity() {
                 target.absolutePath
             }
             result.onSuccess { photoPath = it; renderPhoto() }
-                .onFailure { Toast.makeText(this, "Не удалось загрузить фото", Toast.LENGTH_SHORT).show() }
+                .onFailure { Toast.makeText(this, getString(R.string.error_pet_photo_load), Toast.LENGTH_SHORT).show() }
         }
     }
 
@@ -142,7 +142,7 @@ class OnboardingActivity : AppCompatActivity() {
                 throw exception
             } catch (exception: Exception) {
                 android.util.Log.e("Onboarding", "Failed to save profile", exception)
-                Toast.makeText(this@OnboardingActivity, "Не удалось сохранить профиль. Повторите попытку.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@OnboardingActivity, getString(R.string.error_pet_profile_save), Toast.LENGTH_LONG).show()
             } finally {
                 saving = false
                 continueButton.isEnabled = true
