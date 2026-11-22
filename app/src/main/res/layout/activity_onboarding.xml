@@ -1,145 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_main_gradient"
-    android:fillViewport="true"
-    android:paddingHorizontal="24dp">
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="32dp"
-        android:paddingBottom="32dp">
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/welcome_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="@string/onboarding_title"
-            android:textAppearance="?attr/textAppearanceHeadlineMedium"
-            android:textColor="?attr/colorOnBackground"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/welcome_subtitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="@string/onboarding_subtitle"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnBackground"
-            android:alpha="0.75"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/welcome_title" />
-
-        <FrameLayout
-            android:id="@+id/pet_photo_container"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_marginTop="32dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/welcome_subtitle">
-
-            <ImageView
-                android:id="@+id/pet_photo_image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_circle"
-                android:clipToOutline="true"
-                android:contentDescription="@string/pet_photo"
-                android:scaleType="centerCrop"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/pet_photo_placeholder"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_pet_photo_placeholder"
-                android:contentDescription="@null"
-                android:gravity="center"
-                android:importantForAccessibility="no"
-                android:text="🐾"
-                android:textSize="48sp" />
-
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/bg_main_gradient" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center" android:text="@string/onboarding_title"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:gravity="center" android:text="@string/onboarding_subtitle"
+            android:textAppearance="?attr/textAppearanceBodyLarge" />
+        <FrameLayout android:layout_width="120dp" android:layout_height="120dp"
+            android:layout_gravity="center_horizontal" android:layout_marginTop="24dp">
+            <ImageView android:id="@+id/pet_photo_image" android:layout_width="match_parent"
+                android:layout_height="match_parent" android:scaleType="centerCrop"
+                android:background="@drawable/bg_circle" android:clipToOutline="true"
+                android:contentDescription="@string/pet_photo" android:visibility="gone" />
+            <TextView android:id="@+id/pet_photo_placeholder" android:layout_width="match_parent"
+                android:layout_height="match_parent" android:gravity="center" android:text="🐾"
+                android:textSize="48sp" android:importantForAccessibility="no"
+                android:background="@drawable/bg_pet_photo_placeholder" />
             <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/select_photo_button"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="bottom|end"
-                android:layout_margin="8dp"
-                android:contentDescription="@string/select_pet_photo"
-                android:src="@drawable/ic_add"
-                app:backgroundTint="?attr/colorPrimary"
-                app:fabCustomSize="40dp"
-                app:tint="?attr/colorOnPrimary" />
-
-            <ImageView
-                android:id="@+id/pet_photo_clear"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_gravity="top|end"
-                android:layout_margin="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/clear_photo"
-                android:padding="4dp"
+                android:id="@+id/select_photo_button" android:layout_width="48dp" android:layout_height="48dp"
+                android:layout_gravity="bottom|end" android:src="@drawable/ic_add"
+                android:contentDescription="@string/select_pet_photo" app:fabCustomSize="48dp" />
+            <ImageView android:id="@+id/pet_photo_clear" android:layout_width="48dp"
+                android:layout_height="48dp" android:layout_gravity="top|end" android:padding="12dp"
                 android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:tint="?attr/colorOnSurface"
-                android:visibility="gone" />
-
+                android:contentDescription="@string/clear_photo" android:visibility="gone" />
         </FrameLayout>
-
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/pet_name_input_layout"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:hint="@string/pet_name_hint"
-            app:boxBackgroundColor="?attr/colorSurface"
-            app:boxStrokeColor="?attr/colorOutline"
-            app:boxStrokeWidth="1dp"
-            app:boxStrokeWidthFocused="2dp"
-            app:hintTextColor="?attr/colorOnSurfaceVariant"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/pet_photo_container">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/pet_name_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPersonName"
-                android:maxLines="1"
-                android:textColor="?attr/colorOnSurface"
-                android:textColorHint="?attr/colorOnSurfaceVariant" />
-
+            android:id="@+id/pet_name_input_layout" style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" android:hint="@string/pet_name_hint">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/pet_name_input"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:inputType="textPersonName" android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/continue_button"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="32dp"
-            android:minHeight="48dp"
-            android:text="@string/continue_action"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            app:backgroundTint="?attr/colorPrimary"
-            app:cornerRadius="24dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/pet_name_input_layout"
-            app:strokeWidth="0dp" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" android:text="@string/pet_species_label"
+            android:labelFor="@id/pet_species_group" android:textAppearance="?attr/textAppearanceTitleMedium" />
+        <RadioGroup android:id="@+id/pet_species_group" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="horizontal">
+            <RadioButton android:id="@+id/pet_species_cat" android:layout_width="0dp"
+                android:layout_weight="1" android:layout_height="wrap_content" android:minHeight="48dp"
+                android:text="@string/pet_species_cat" />
+            <RadioButton android:id="@+id/pet_species_dog" android:layout_width="0dp"
+                android:layout_weight="1" android:layout_height="wrap_content" android:minHeight="48dp"
+                android:text="@string/pet_species_dog" />
+        </RadioGroup>
+        <TextView android:id="@+id/pet_species_error" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/pet_species_required"
+            android:textColor="?attr/colorError" android:accessibilityLiveRegion="polite" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/continue_button"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="24dp" android:minHeight="48dp"
+            android:text="@string/continue_action" app:cornerRadius="24dp" />
+    </LinearLayout>
 </ScrollView>

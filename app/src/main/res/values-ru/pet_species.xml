@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pet_species_label">Вид питомца *</string>
+    <string name="pet_species_cat">Кот</string>
+    <string name="pet_species_dog">Собака</string>
+    <string name="pet_species_required">Выберите вид питомца</string>
+</resources>

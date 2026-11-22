@@ -3,205 +3,149 @@ package com.barny.healthtracker
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import com.google.android.material.textfield.TextInputLayout
 import android.view.View
-import android.widget.Button
-import android.text.Editable
-import android.text.TextWatcher
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.barny.healthtracker.app.App
+import com.barny.healthtracker.data.local.db.DatabaseProvider
+import com.barny.healthtracker.data.local.db.DatabaseSeeder
+import com.barny.healthtracker.data.local.db.entity.SpeciesType
 import com.barny.healthtracker.data.preferences.SettingsDataStore
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.FileOutputStream
-import kotlin.io.copyTo
 
 class OnboardingActivity : AppCompatActivity() {
-
-    private lateinit var petNameInput: EditText
-    private lateinit var petNameInputLayout: TextInputLayout
-    private lateinit var petPhotoImage: ImageView
-    private lateinit var petPhotoPlaceholder: TextView
+    private lateinit var nameInput: EditText
+    private lateinit var nameLayout: TextInputLayout
+    private lateinit var group: RadioGroup
+    private lateinit var error: TextView
+    private lateinit var photo: ImageView
+    private lateinit var placeholder: TextView
+    private lateinit var clear: ImageView
+    private lateinit var pick: View
     private lateinit var continueButton: Button
-    private lateinit var petPhotoClear: ImageView
-    private lateinit var selectPhotoButton: FloatingActionButton
+    private var photoPath: String? = null
+    private var saving = false
+    private val settings by lazy { SettingsDataStore(this) }
 
-    private var photoUri: String? = null  // теперь это путь к файлу
-    private val settingsDataStore by lazy { SettingsDataStore(this) }
-
-    private val pickImageLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri == null) {
-            return@registerForActivityResult
+    private val picker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val temporary = File(filesDir, "pet_photo_temp.jpg")
+            val target = File(filesDir, "pet_photo.jpg")
+            val result = runCatching {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    temporary.outputStream().use { output -> input.copyTo(output) }
+                } ?: error("Cannot open image")
+                check(temporary.length() > 0)
+                temporary.copyTo(target, overwrite = true)
+                temporary.delete()
+                target.absolutePath
+            }
+            result.onSuccess { photoPath = it; renderPhoto() }
+                .onFailure { Toast.makeText(this, getString(R.string.error_pet_photo_load), Toast.LENGTH_SHORT).show() }
         }
-
-        val filePath = copyImageToInternalStorage(uri)
-
-        if (filePath == null) {
-            Toast.makeText(
-                this,
-                "Не удалось загрузить фото",
-                Toast.LENGTH_SHORT
-            ).show()
-            return@registerForActivityResult
-        }
-
-        photoUri = filePath
-
-        petPhotoImage.setImageURI(Uri.fromFile(File(filePath)))
-        petPhotoImage.visibility = View.VISIBLE
-        petPhotoPlaceholder.visibility = View.GONE
-        petPhotoClear.visibility = View.VISIBLE
-        selectPhotoButton.visibility = View.GONE
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_onboarding)
-
-        petNameInput = findViewById(R.id.pet_name_input)
-        petNameInputLayout = findViewById(R.id.pet_name_input_layout)
-        petPhotoImage = findViewById(R.id.pet_photo_image)
-        petPhotoPlaceholder = findViewById(R.id.pet_photo_placeholder)
+        nameInput = findViewById(R.id.pet_name_input)
+        nameLayout = findViewById(R.id.pet_name_input_layout)
+        group = findViewById(R.id.pet_species_group)
+        error = findViewById(R.id.pet_species_error)
+        photo = findViewById(R.id.pet_photo_image)
+        placeholder = findViewById(R.id.pet_photo_placeholder)
+        clear = findViewById(R.id.pet_photo_clear)
+        pick = findViewById(R.id.select_photo_button)
         continueButton = findViewById(R.id.continue_button)
-        petPhotoClear = findViewById(R.id.pet_photo_clear)
-        selectPhotoButton = findViewById(R.id.select_photo_button)
-
-        selectPhotoButton.setOnClickListener {
-            pickImageLauncher.launch("image/*")
-        }
-
-        continueButton.setOnClickListener {
-            saveSettingsAndContinue()
-        }
-        petNameInput.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
-            ) = Unit
-
-            override fun onTextChanged(
-                s: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int
-            ) {
-                petNameInputLayout.error = null
+        photoPath = savedInstanceState?.getString("photo_path")
+        savedInstanceState?.getString("species")?.let { value ->
+            when (PetSpecies.fromStorage(value)) {
+                PetSpecies.CAT -> group.check(R.id.pet_species_cat)
+                PetSpecies.DOG -> group.check(R.id.pet_species_dog)
+                null -> Unit
             }
-
-            override fun afterTextChanged(s: Editable?) = Unit
-        })
-
-        petPhotoClear.setOnClickListener {
-            // Удалить файл из внутреннего хранилища
-            photoUri?.let { filePath ->
-                File(filePath).delete()
-            }
-
-            photoUri = null
-            petPhotoImage.setImageDrawable(null)
-            petPhotoImage.visibility = View.GONE
-            petPhotoPlaceholder.visibility = View.VISIBLE
-            petPhotoClear.visibility = View.GONE
-            selectPhotoButton.visibility = View.VISIBLE
         }
+        renderPhoto()
+        group.setOnCheckedChangeListener { _, _ -> error.visibility = View.GONE }
+        pick.setOnClickListener { picker.launch("image/*") }
+        clear.setOnClickListener {
+            photoPath?.let { File(it).delete() }
+            photoPath = null
+            renderPhoto()
+        }
+        continueButton.setOnClickListener { saveProfile() }
     }
 
-    private fun copyImageToInternalStorage(uri: Uri): String? {
-        val tempFile = File(filesDir, "pet_photo_temp.jpg")
-        val targetFile = File(filesDir, "pet_photo.jpg")
-
-        return runCatching {
-            contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(tempFile).use { output ->
-                    input.copyTo(output)
-                }
-            } ?: return null
-
-            if (!tempFile.exists() || tempFile.length() == 0L) {
-                tempFile.delete()
-                return null
-            }
-
-            if (targetFile.exists()) {
-                targetFile.delete()
-            }
-
-            if (!tempFile.renameTo(targetFile)) {
-                tempFile.copyTo(targetFile, overwrite = true)
-                tempFile.delete()
-            }
-
-            targetFile.absolutePath
-        }.getOrNull()
+    private fun selectedSpecies(): PetSpecies? = when (group.checkedRadioButtonId) {
+        R.id.pet_species_cat -> PetSpecies.CAT
+        R.id.pet_species_dog -> PetSpecies.DOG
+        else -> null
     }
 
-    private fun saveSettingsAndContinue() {
-        val petName = petNameInput.text
-            ?.toString()
-            ?.trim()
-            .orEmpty()
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("photo_path", photoPath)
+        outState.putString("species", selectedSpecies()?.storageValue)
+        super.onSaveInstanceState(outState)
+    }
 
-        if (petName.isBlank()) {
-            petNameInputLayout.error = getString(
-                R.string.error_pet_name_required
-            )
-            petNameInput.requestFocus()
+    private fun renderPhoto() {
+        val exists = photoPath?.let { File(it).isFile } == true
+        photo.visibility = if (exists) View.VISIBLE else View.GONE
+        placeholder.visibility = if (exists) View.GONE else View.VISIBLE
+        clear.visibility = if (exists) View.VISIBLE else View.GONE
+        pick.visibility = if (exists) View.GONE else View.VISIBLE
+        if (exists) photo.setImageURI(Uri.fromFile(File(photoPath!!))) else photo.setImageDrawable(null)
+    }
+
+    private fun saveProfile() {
+        if (saving) return
+        val name = nameInput.text.toString().trim()
+        val species = selectedSpecies()
+        nameLayout.error = if (name.isBlank()) getString(R.string.error_pet_name_required) else null
+        error.visibility = if (species == null) View.VISIBLE else View.GONE
+        if (name.isBlank() || species == null) {
+            if (name.isBlank()) nameInput.requestFocus()
+            if (species == null) error.announceForAccessibility(getString(R.string.pet_species_required))
             return
         }
-
-        petNameInputLayout.error = null
-
+        saving = true
+        continueButton.isEnabled = false
         lifecycleScope.launch {
-            runCatching {
-                settingsDataStore.setPetName(petName)
-
-                if (photoUri.isNullOrBlank()) {
-                    settingsDataStore.setPetPhotoUri("")
+            try {
+                val db = DatabaseProvider.get(this@OnboardingActivity)
+                DatabaseSeeder(db).seed()
+                val type = if (species == PetSpecies.CAT) SpeciesType.CAT else SpeciesType.DOG
+                val speciesEntity = checkNotNull(db.speciesDao().getByCode(type))
+                val container = (application as App).appContainer
+                val active = container.petRepository.getActivePetOrNull()
+                if (active == null) {
+                    container.petRepository.createPet(name = name, speciesId = speciesEntity.id)
                 } else {
-                    settingsDataStore.setPetPhotoUri(photoUri.orEmpty())
+                    check(active.speciesId == speciesEntity.id) { "Existing profile belongs to another species" }
                 }
-
-                settingsDataStore.setOnboardingCompleted(true)
-            }.onSuccess {
-                val prefs = getSharedPreferences(
-                    "onboarding_prefs",
-                    MODE_PRIVATE
-                )
-
-                prefs.edit()
-                    .putBoolean("completed", true)
-                    .apply()
-
-                startActivity(
-                    Intent(
-                        this@OnboardingActivity,
-                        MainActivity::class.java
-                    )
-                )
-
+                settings.setPetName(name)
+                settings.setPetPhotoUri(photoPath.orEmpty())
+                val persisted = getSharedPreferences("onboarding_prefs", MODE_PRIVATE).edit()
+                    .putString("pet_species", species.storageValue).commit()
+                check(persisted) { "Cannot save species" }
+                HealthParams.selectSpecies(species)
+                settings.setOnboardingCompleted(true)
+                check(getSharedPreferences("onboarding_prefs", MODE_PRIVATE).edit().putBoolean("completed", true).commit())
+                startActivity(Intent(this@OnboardingActivity, MainActivity::class.java))
                 finish()
-            }.onFailure { throwable ->
-                Toast.makeText(
-                    this@OnboardingActivity,
-                    "Не удалось сохранить профиль",
-                    Toast.LENGTH_LONG
-                ).show()
-
-                android.util.Log.e(
-                    "Onboarding",
-                    "Failed to save profile",
-                    throwable
-                )
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                android.util.Log.e("Onboarding", "Failed to save profile", exception)
+                Toast.makeText(this@OnboardingActivity, getString(R.string.error_pet_profile_save), Toast.LENGTH_LONG).show()
+            } finally {
+                saving = false
+                continueButton.isEnabled = true
             }
         }
     }
